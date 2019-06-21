@@ -1,0 +1,11 @@
+#
+# P3 model iteration configuration
+#
+
+#
+# feature processing
+#
+
+# minimum amount of total variance to be accounted for in PCA-projected versions
+# of feature data
+pca_min_variance: 0.95

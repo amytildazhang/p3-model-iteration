@@ -32,5 +32,5 @@ rule create_training_sets:
 #
 rule pca_project:
     input: 'data/raw/features/{feature_type}/{feature}.tsv'
-    output: touch('data/processed/features/{feature_type}/{feature}_pca.tsv')
-    #script: 'scripts/pca_project.R'
+    output: 'data/processed/features/{feature_type}/{feature}_pca.tsv'
+    script: 'scripts/pca_project.R'

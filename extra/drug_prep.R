@@ -22,7 +22,7 @@ for (infile in Sys.glob(file.path(data_dir, '*.csv'))) {
     select(cell_line, drug_id, ac50, lac50, DATA7, DATA8)
 
   # base output filename
-  output_base <- file.path(output_dir, tools::file_path_sans_ext(basename(infile)))
+  file_prefix <- tools::file_path_sans_ext(basename(infile))
 
   # iterate over response types, and for each drug / response, save to a separate file
   for (response in c('ac50', 'lac50', 'DATA7', 'DATA8')) {
@@ -30,7 +30,7 @@ for (infile in Sys.glob(file.path(data_dir, '*.csv'))) {
     dat %>%
       select(drug_id, cell_line, response) %>%
       group_by(drug_id) %>%
-      group_walk(~write_tsv(.x, sprintf("%s_%s_%s.tsv", output_base, .y$drug_id, response)))
+      group_walk(~write_tsv(.x, file.path(output_dir, sprintf("%s_%s_%s.tsv", .y$drug_id, file_prefix, response))))
   }
 }
 

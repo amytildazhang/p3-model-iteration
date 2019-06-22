@@ -1,6 +1,7 @@
 #
-# P3 model iteration configuration
+# HMCL pipeline configuration
 #
+name: hmcl
 
 #
 # feature processing

@@ -2,7 +2,7 @@
 #
 # Generate a PCA-projected version of feature dataset
 #
-dat <- read.delim(snakemake@input[[1]], sep = '\t', row.names = 1)
+dat <- read.delim(gzfile(snakemake@input[[1]]), sep = '\t', row.names = 1)
 
 pca <- prcomp(t(dat), scale = snakemake@config$pca_scale)
 
@@ -26,5 +26,6 @@ num_pcs <- which(var_explained >= snakemake@config$pca_min_variance)[1]
 pca_dat <- t(pca$x[, 1:num_pcs])
 
 # save to disk
-write.table(pca_dat, snakemake@output[[1]], sep = '\t', col.names = NA)
-
+outfile <- sub('.gz', '', snakemake@output[[1]])
+write.table(pca_dat, outfile, sep = '\t', col.names = NA)
+system(sprintf("gzip %s", outfile))

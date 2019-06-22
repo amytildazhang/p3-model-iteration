@@ -1,0 +1,10 @@
+python>=3.6
+snakemake-minimal
+bioconductor-biobase
+r-base=3.5.1
+r-tidyverse
+r-tidymodels
+r-pls
+r-rstan
+r-snow
+r-latex2exp

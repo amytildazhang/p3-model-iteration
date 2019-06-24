@@ -40,6 +40,11 @@ dat <- dat %>%
   summarise_all(funs(mean))
 
 # there are no zero-variance genes, so no filtering needed
+write_tsv(dat, '/data/projects/nih/p3/cnv/cnv_gene_max_scores_grch38.tsv')
 
-write_tsv(dat, '/data/projects/nih/p3-models/data/raw/features/cnv/cnv_gene_max_scores_grch38.tsv')
+for (infile in Sys.glob('/data/projects/nih/p3/cnv/cnv_rcgh*')) {
+  dat <- read_tsv(infile)
+  dat <- dat[, !colnames(dat) %in% exclude_cells]
 
+  write_tsv(dat, infile)
+}

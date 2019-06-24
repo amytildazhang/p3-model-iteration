@@ -46,6 +46,6 @@ dat <- dat[mask, ]
 cpm_dat <- dat
 cpm_dat[, -1] <- sweep(dat[, -1], 2, colSums(dat[, -1]), '/') * 1E6
 
-write_tsv(dat, '/data/projects/nih/p3-models/data/raw/features/rnaseq/rnaseq_grch38_featurecounts_raw.tsv')
-write_tsv(cpm_dat, '/data/projects/nih/p3-models/data/raw/features/rnaseq/rnaseq_grch38_featurecounts_cpm.tsv')
+write_tsv(dat, '/data/projects/nih/p3/rnaseq/rnaseq_grch38_featurecounts_raw.tsv')
+write_tsv(cpm_dat, '/data/projects/nih/p3/rnaseq/rnaseq_grch38_featurecounts_cpm.tsv')
 

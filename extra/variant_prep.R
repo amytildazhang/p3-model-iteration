@@ -71,6 +71,6 @@ mask2 <- apply(dat_grch38[, -1], 1, var) > 0
 dat_grch37 <- dat_grch37[mask1, ]
 dat_grch38 <- dat_grch38[mask2, ]
 
-write_tsv(dat_grch37, '/data/projects/nih/p3-models/data/raw/features/cnv/exome_variants_by_gene_grch37.tsv')
-write_tsv(dat_grch37, '/data/projects/nih/p3-models/data/raw/features/cnv/exome_variants_by_gene_grch38.tsv')
+write_tsv(dat_grch37, '/data/projects/nih/p3/variants/exome_variants_by_gene_grch37.tsv')
+write_tsv(dat_grch37, '/data/projects/nih/p3/variants/exome_variants_by_gene_grch38.tsv')
 

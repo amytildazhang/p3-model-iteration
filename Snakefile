@@ -19,6 +19,7 @@ var_datasets = [Path(x).name.replace('.tsv.gz', '') for x in glob.glob(os.path.j
 
 # drug response input files
 response_files = os.listdir(os.path.join(data_dir, 'raw/response'))
+response_datasets = [x.replace('.tsv.gz', '') for x in response_files] 
 
 # gene sets
 gene_set_files = [os.path.basename(x) for x in glob.glob('gene_sets/*.gmt.gz')]
@@ -30,33 +31,42 @@ gene_sets = [Path(x).name.replace('.gmt.gz', '') for x in gene_set_files]
 #
 rule all:
     input:
-        [expand(os.path.join(data_dir, 'train/orig/train_{rna}_{cnv}_{var}.tsv.gz'), rna=rna_datasets, cnv=cnv_datasets, var=var_datasets),
-         expand(os.path.join(data_dir, 'train/pca/train_{rna}_{cnv}_{var}.tsv.gz'), rna=rna_datasets, cnv=cnv_datasets, var=var_datasets),
-         expand(os.path.join(data_dir, 'train/gene_set/train_{gene_set}_{rna}_{cnv}_{var}.tsv.gz'), gene_set=gene_sets, rna=rna_datasets, cnv=cnv_datasets, var=var_datasets)]
+        [expand(os.path.join(data_dir, 'train/orig/{response}/train_RNA_{rna}_CNV_{cnv}_VAR_{var}.tsv.gz'), rna=rna_datasets, cnv=cnv_datasets, var=var_datasets, response=response_datasets),
+         expand(os.path.join(data_dir, 'train/pca/{response}/train_RNA_{rna}_CNV_{cnv}_VAR_{var}.tsv.gz'), rna=rna_datasets, cnv=cnv_datasets, var=var_datasets, response=response_datasets)]
+         #expand(os.path.join(data_dir, 'train/gene_set/{response}/train_{gene_set}_RNA_{rna}_CNV_{cnv}_VAR_{var}.tsv.gz'), gene_set=gene_sets, rna=rna_datasets, cnv=cnv_datasets, var=var_datasets, response=response_datasets)]
 
 rule create_training_sets:
     input:
-        expand(os.path.join(data_dir, 'raw/features/rnaseq/{rna}.tsv.gz'), rna=rna_datasets),
-        expand(os.path.join(data_dir, 'raw/features/cnv/{cnv}.tsv.gz'), cnv=cnv_datasets),
-        expand(os.path.join(data_dir, 'raw/features/variants/{var}.tsv.gz'), var=var_datasets)
+        os.path.join(data_dir, 'raw/features/rnaseq/{rna}.tsv.gz'),
+        os.path.join(data_dir, 'raw/features/cnv/{cnv}.tsv.gz'),
+        os.path.join(data_dir, 'raw/features/variants/{var}.tsv.gz'),
+        os.path.join(data_dir, 'raw/response/{response}.tsv.gz')
     output:
-        touch(expand(os.path.join(data_dir, 'train/orig/train_{rna}_{cnv}_{var}.tsv.gz'), rna=rna_datasets, cnv=cnv_datasets, var=var_datasets))
+        os.path.join(data_dir, 'train/orig/{response}/train_RNA_{rna}_CNV_{cnv}_VAR_{var}.tsv.gz')
+    script:
+        'scripts/create_training_set.R'
 
 rule create_pca_projected_training_sets:
     input:
-        expand(os.path.join(data_dir, 'processed/features/rnaseq/pca/{rna}.tsv.gz'), rna=rna_datasets),
-        expand(os.path.join(data_dir, 'processed/features/cnv/pca/{cnv}.tsv.gz'), cnv=cnv_datasets),
-        expand(os.path.join(data_dir, 'processed/features/variants/pca/{var}.tsv.gz'), var=var_datasets)
+        os.path.join(data_dir, 'processed/features/rnaseq/pca/{rna}.tsv.gz'),
+        os.path.join(data_dir, 'processed/features/cnv/pca/{cnv}.tsv.gz'),
+        os.path.join(data_dir, 'processed/features/variants/pca/{var}.tsv.gz'),
+        os.path.join(data_dir, 'raw/response/{response}.tsv.gz')
     output:
-        touch(expand(os.path.join(data_dir, 'train/pca/train_{rna}_{cnv}_{var}.tsv.gz'), rna=rna_datasets, cnv=cnv_datasets, var=var_datasets))
+        os.path.join(data_dir, 'train/pca/{response}/train_RNA_{rna}_CNV_{cnv}_VAR_{var}.tsv.gz')
+    script:
+        'scripts/create_training_set.R'
 
 rule create_gene_set_projected_training_sets:
     input:
-        expand(os.path.join(data_dir, 'processed/features/rnaseq/gene_sets/{gene_set}/{rna}.tsv.gz'), gene_set=gene_sets, rna=rna_datasets),
-        expand(os.path.join(data_dir, 'processed/features/cnv/gene_sets/{gene_set}/{cnv}.tsv.gz'), gene_set=gene_sets, cnv=cnv_datasets),
-        expand(os.path.join(data_dir, 'processed/features/variants/gene_sets/{gene_set}/{var}.tsv.gz'), gene_set=gene_sets, var=var_datasets)
+        os.path.join(data_dir, 'processed/features/rnaseq/gene_sets/{gene_set}/{rna}.tsv.gz'),
+        os.path.join(data_dir, 'processed/features/cnv/gene_sets/{gene_set}/{cnv}.tsv.gz'),
+        os.path.join(data_dir, 'processed/features/variants/gene_sets/{gene_set}/{var}.tsv.gz'),
+        os.path.join(data_dir, 'raw/response/{response}.tsv.gz')
     output:
-        touch(expand(os.path.join(data_dir, 'train/gene_set/train_{gene_set}_{rna}_{cnv}_{var}.tsv.gz'), gene_set=gene_sets, rna=rna_datasets, cnv=cnv_datasets, var=var_datasets))
+        os.path.join(data_dir, 'train/gene_set/{response}/train_{gene_set}_RNA_{rna}_CNV_{cnv}_VAR_{var}.tsv.gz')
+    script:
+        'scripts/create_training_set.R'
 
 rule rna_gene_sets:
     input:
@@ -93,9 +103,4 @@ rule variant_pca:
     input: os.path.join(data_dir, 'raw/features/variants/{var}.tsv.gz')
     output: os.path.join(data_dir, 'processed/features/variants/pca/{var}.tsv.gz')
     script: 'scripts/pca_project.R'
-
-#rule create_training_sets:
-#    input: expand(os.path.join(data_dir, "raw/response/{response}"), response=response_files),
-#           expand(os.path.join(data_dir, "processed/features/{feature_type}/pca/{feature}.tsv.gz"), zip, feature_type=feature_types, feature=features),
-#           expand(os.path.join(data_dir, "processed/features/{feature_type}/{gene_set}/{feature}.tsv.gz"), zip, feature_type=feature_types, feature=features, gene_set=gene_sets)
 

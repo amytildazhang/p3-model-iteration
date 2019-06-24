@@ -3,7 +3,12 @@ pandas
 snakemake-minimal
 bioconductor-biobase
 bioconductor-gseabase
+bioconductor-pharmacogx
 r-base=3.5.1
+r-biocmanager
+r-caret
+r-coop
+r-remotes
 r-tidyverse
 r-tidymodels
 r-pls

@@ -14,3 +14,11 @@ aggregation_func: median
 # of feature data
 pca_scale: true
 pca_min_variance: 0.95
+
+#
+# feature selection
+#
+feat_selection_min_var_quantile: 0.25
+feat_selection_max_cor_rna: 0.90
+feat_selection_max_cor_cnv: 0.95
+feat_selection_max_cor_variatns: 0.90

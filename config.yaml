@@ -7,6 +7,9 @@ name: hmcl
 # feature processing
 #
 
+# function to use when aggregating feature data within gene sets
+aggregation_func: median
+
 # minimum amount of total variance to be accounted for in PCA-projected versions
 # of feature data
 pca_scale: true

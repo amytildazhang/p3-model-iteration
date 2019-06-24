@@ -1,6 +1,8 @@
 python>=3.6
+pandas
 snakemake-minimal
 bioconductor-biobase
+bioconductor-gseabase
 r-base=3.5.1
 r-tidyverse
 r-tidymodels

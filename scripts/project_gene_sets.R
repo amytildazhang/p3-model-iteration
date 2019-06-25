@@ -37,6 +37,11 @@ for (gset in names(gene_sets)) {
 
   res <- rbind(res, apply(dat_gset[, -1], 2, snakemake@config$aggregation_func))
 }
+
+# drop any rows with zero variance (uninformative)
+row_vars <- apply(res, 1, var)
+res <- res[row_vars != 0, ]
+
 res <- bind_cols(gene_set = names(gene_sets), as.data.frame(res))
 
 write_tsv(res, snakemake@output[[1]])

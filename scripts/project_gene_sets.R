@@ -30,6 +30,11 @@ for (gset in names(gene_sets)) {
   dat_gset <- dat %>%
     filter(symbol %in% gene_sets[[gset]])
 
+  # if no genes from gene set were found, continue to next gene set
+  if (nrow(dat_gset) == 0) {
+    next
+  }
+
   res <- rbind(res, apply(dat_gset[, -1], 2, snakemake@config$aggregation_func))
 }
 res <- bind_cols(gene_set = names(gene_sets), as.data.frame(res))

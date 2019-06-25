@@ -17,6 +17,12 @@ names(gene_sets) <- sub(':\\d+$', '', names(gene_sets))
 # e.g. "ANXA1,1.0" -> "ANXA1"
 gene_sets <- lapply(gene_sets, function(x) { sub(',\\d+\\.\\d+$', '', x) }) 
 
+# exclude any gene sets with fewer than the required number of genes
+set_sizes <- lapply(gene_sets, length)
+mask <- set_sizes >= snakemake@config$gene_set_min_size
+
+gene_sets <- gene_sets[mask]
+
 # iterate over gene sets and apply function to data for gene in each set
 res <- NULL
 

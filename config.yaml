@@ -2,10 +2,15 @@
 # HMCL pipeline configuration
 #
 name: hmcl
+version: 0.1
 
 #
 # feature processing
 #
+
+# minimum number of genes required for a gene set to be used for projecing
+# feature data
+gene_set_min_size: 5
 
 # function to use when aggregating feature data within gene sets
 aggregation_func: median
@@ -19,6 +24,4 @@ pca_min_variance: 0.95
 # feature selection
 #
 feat_selection_min_var_quantile: 0.25
-feat_selection_max_cor_rna: 0.90
-feat_selection_max_cor_cnv: 0.95
-feat_selection_max_cor_variatns: 0.90
+feat_selection_max_cor: 0.95

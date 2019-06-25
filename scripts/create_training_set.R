@@ -23,34 +23,6 @@ rna <- rna[, c(colnames(rna)[1], sample_ids)]
 cnv <- cnv[, c(colnames(cnv)[1], sample_ids)]
 variants <- variants[, c(colnames(variants)[1], sample_ids)]
 
-# remove low variance features from each dataset
-row_vars <- apply(rna[, -1], 1, var)
-var_cutoff <- quantile(row_vars, snakemake@config$feat_selection_min_var_quantile)
-rna <- rna[row_vars >= var_cutoff, ]
-
-row_vars <- apply(cnv[, -1], 1, var)
-var_cutoff <- quantile(row_vars, snakemake@config$feat_selection_min_var_quantile)
-cnv <- cnv[row_vars >= var_cutoff, ]
-
-row_vars <- apply(variants[, -1], 1, var)
-var_cutoff <- quantile(row_vars, snakemake@config$feat_selection_min_var_quantile)
-variants <- variants[row_vars >= var_cutoff, ]
-
-# remove correlated features from each dataset;
-# perfomring on a per-dataset basis reduces memory requirements significantly and
-# should remove most of the correlated features 
-cor_mat <- coop::pcor(t(rna[, -1]))
-ind <- findCorrelation(cor_mat, snakemake@config$feat_selection_max_cor_rna)
-rna <- rna[-ind, ]
-
-cor_mat <- coop::pcor(t(cnv[, -1]))
-ind <- findCorrelation(cor_mat, snakemake@config$feat_selection_max_cor_cnv)
-cnv <- cnv[-ind, ]
-
-cor_mat <- coop::pcor(t(variants[, -1]))
-ind <- findCorrelation(cor_mat, snakemake@config$feat_selection_max_cor_variants)
-variants <- variants[-ind, ]
-
 # combine features
 dat <- rbind(rna, cnv, variants)
 
@@ -61,9 +33,11 @@ dat <- t(dat)
 colnames(dat) <- feat_ids
 
 # add response data and save
-response <- read_tsv('../data/hmcl/raw/response/NCGC00015038-08_bg_adj_curves_DATA7.tsv.gz') %>%
+response <- read_tsv(snakemake@input[[4]]) %>%
   filter(cell_line %in% sample_ids)
-response <- response[match(sample_ids, response$cell_line), 2]
+
+RESPONSE_VALUES_IND <- 2
+response <- response[match(sample_ids, response$cell_line), RESPONSE_VALUES_IND]
 
 dat <- cbind(dat, response)
 colnames(dat)[ncol(dat)] <- 'response'

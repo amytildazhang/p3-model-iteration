@@ -12,8 +12,11 @@ version: 0.1
 # feature data
 gene_set_min_size: 5
 
-# function to use when aggregating feature data within gene sets
-aggregation_func: median
+# functions to use when aggregating feature data within gene sets
+aggregation_funcs:
+  rna: median
+  cnv: mean
+  var: sum
 
 # minimum amount of total variance to be accounted for in PCA-projected versions
 # of feature data
@@ -23,5 +26,13 @@ pca_min_variance: 0.95
 #
 # feature selection
 #
-feat_selection_min_var_quantile: 0.25
-feat_selection_max_cor: 0.95
+feat_selection:
+  rna:
+    min_var_quantile: 0.25
+    max_cor: 0.90
+  cnv:
+    min_var_quantile: 0.25
+    max_cor: 0.95
+  var:
+    min_var_quantile: 0.25
+    max_cor: 0.90

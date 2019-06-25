@@ -5,6 +5,16 @@ name: hmcl
 version: 0.1
 
 #
+# cross validation
+# 
+# parameters to use for outer repeated cross validation
+#
+cv:
+  num_splits: 3
+  num_repeats: 5
+  random_seed: 801372
+
+#
 # feature processing
 #
 

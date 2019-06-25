@@ -1,5 +1,6 @@
 python>=3.6
 pandas
+scikit-learn
 snakemake-minimal
 bioconductor-biobase
 bioconductor-gseabase

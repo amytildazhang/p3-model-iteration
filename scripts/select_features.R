@@ -2,9 +2,11 @@
 #
 # Perform basic feature selection
 #
-library(readr)
-library(caret)
-library(coop)
+suppressMessages(library(readr))
+suppressMessages(library(caret))
+suppressMessages(library(coop))
+
+options(stringsAsFactors = FALSE)
 
 dat <- read_tsv(snakemake@input[[1]])
 

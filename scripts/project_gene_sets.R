@@ -2,8 +2,10 @@
 #
 # aggregate feature data along specified gene sets
 #
-library(GSEABase)
-library(tidyverse)
+suppressMessages(library(GSEABase))
+suppressMessages(library(tidyverse))
+
+options(stringsAsFactors = FALSE)
 
 # determine input data type from wildcards
 if ('rna' %in% names(snakemake@wildcards)) {

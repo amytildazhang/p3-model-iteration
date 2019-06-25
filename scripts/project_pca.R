@@ -2,6 +2,8 @@
 #
 # Generate a PCA-projected version of feature dataset
 #
+options(stringsAsFactors = FALSE)
+
 dat <- read.delim(gzfile(snakemake@input[[1]]), sep = '\t', row.names = 1)
 
 pca <- prcomp(t(dat), scale = snakemake@config$pca_scale)

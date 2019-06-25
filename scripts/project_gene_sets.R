@@ -17,7 +17,7 @@ if ('rna' %in% names(snakemake@wildcards)) {
 }
 
 # load feature data
-dat <- read_tsv(snakemake@input$features)
+dat <- read_tsv(snakemake@input$features, col_types = cols())
 
 gene_sets <- geneIds(getGmt(gzfile(snakemake@input$gene_set)))
 

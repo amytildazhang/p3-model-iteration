@@ -8,7 +8,7 @@ suppressMessages(library(coop))
 
 options(stringsAsFactors = FALSE)
 
-dat <- read_tsv(snakemake@input[[1]])
+dat <- read_tsv(snakemake@input[[1]], col_types = cols())
 
 # determine input data type from wildcards
 if ('rna' %in% names(snakemake@wildcards)) {
@@ -28,7 +28,10 @@ dat <- dat[row_vars >= var_cutoff, ]
 cor_mat <- coop::pcor(t(dat[, -1]))
 
 ind <- findCorrelation(cor_mat, snakemake@config$feat_selection[[data_type]][['max_cor']])
-dat <- dat[-ind, ]
+
+if (length(ind) > 0) {
+  dat <- dat[-ind, ]
+}
 
 write_tsv(dat, snakemake@output[[1]])
 

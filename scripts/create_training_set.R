@@ -6,10 +6,6 @@ suppressMessages(library(tidyverse))
 
 options(stringsAsFactors = FALSE)
 
-rna <- read_tsv(snakemake@input[[1]])
-cnv <- read_tsv(snakemake@input[[2]])
-variants <- read_tsv(snakemake@input[[3]])
-
 # create a list to store non-empty datasets in
 dsets <- list()
 
@@ -18,10 +14,12 @@ data_types <- c('rna', 'cnv', 'variants')
 for (i in 1:length(data_types)) {
   # load feature data
   infile <- snakemake@input[[i]]
-  dat <- read_tsv(infile)
+  dat <- read_tsv(infile, col_type = cols())
 
   # skip empty datasets
   if (nrow(dat) == 0) {
+    print(infile)
+    print("nope!")
     next
   }
 
@@ -37,10 +35,13 @@ for (i in 1:length(data_types)) {
 # the 'max_scores' file, which is missing data for SKMM1_PLB.
 shared_sample_ids <- Reduce(intersect, lapply(dsets, function(x) { colnames(x)[-1] }))
 
+print(shared_sample_ids)
+print(dsets)
+
 # normalize columns across feature datasets
-for (i in 1:length(dsets)) {
-  id_col <- colnames(dsets[[i]])[1]
-  dsets[[i]] <- dsets[[i]][, c(id_col, shared_sample_ids)]
+for (dset in names(dsets)) {
+  id_col <- colnames(dsets[[dset]])[1]
+  dsets[[dset]] <- dsets[[dset]][, c(id_col, shared_sample_ids)]
 }
 
 # combine features

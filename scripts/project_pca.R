@@ -2,11 +2,12 @@
 #
 # Generate a PCA-projected version of feature dataset
 #
+suppressMessages(library(tidyverse))
 options(stringsAsFactors = FALSE)
 
-dat <- read.delim(gzfile(snakemake@input[[1]]), sep = '\t', row.names = 1)
+dat <- read_tsv(snakemake@input[[1]], col_types = cols())
 
-pca <- prcomp(t(dat), scale = snakemake@config$pca_scale)
+pca <- prcomp(t(dat[, -1]), scale = snakemake@config$pca_scale)
 
 # the second row of summary(prcomp(..))$importance corresponds to the cumulative
 # proportion of variance explained
@@ -28,6 +29,8 @@ num_pcs <- which(var_explained >= snakemake@config$pca_min_variance)[1]
 pca_dat <- t(pca$x[, 1:num_pcs])
 
 # save to disk
-outfile <- sub('.gz', '', snakemake@output[[1]])
-write.table(pca_dat, outfile, sep = '\t', col.names = NA)
-system(sprintf("gzip %s", outfile))
+pca_dat %>%
+  as.data.frame %>%
+  rownames_to_column('PC') %>%
+  write_tsv(snakemake@output[[1]])
+

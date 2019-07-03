@@ -15,6 +15,7 @@ data_type <- strsplit(snakemake@rule, '_')[[1]][[2]]
 
 # remove low variance features from dataset
 row_vars <- apply(dat[, -1], 1, var, na.rm = TRUE)
+
 var_cutoff <- quantile(row_vars, snakemake@config$feat_selection[[data_type]][['min_var_quantile']])
 dat <- dat[row_vars >= var_cutoff, ]
 

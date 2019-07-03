@@ -44,6 +44,8 @@ gset_names <- c()
 # determine which aggregation function to use
 agg_func <- snakemake@config$aggregation_funcs[[data_type]]
 
+ID_COL_INDEX <- 1
+
 message(sprintf('Aggregating %s along gene sets...', data_type))
 
 for (gset in names(gene_sets)) {
@@ -56,11 +58,11 @@ for (gset in names(gene_sets)) {
   }
   gset_names <- c(gset_names, gset)
 
-  res <- rbind(res, apply(dat_gset[, -1], 2, agg_func))
+  res <- rbind(res, apply(dat_gset[, -ID_COL_INDEX], 2, agg_func, na.rm = TRUE))
 }
 
 # drop any rows with zero variance (uninformative)
-mask <- apply(res, 1, var) > 0
+mask <- apply(res, 1, var, na.rm = TRUE) > 0
 res <- res[mask, ]
 gset_names <- gset_names[mask]
 

@@ -28,12 +28,12 @@ To verify that the pipeline is configured properly and is able to locate the nec
 files, you can perform a dry run using:
 
 ```
-snakemake -n
+snakemake --configfile config/hmcl.yml -n
 ```
 
 To run the pipeline, simply calling Snakemake, specifying the desired number of threads,
 e.g. 
 
 ```
-snakemake -j 8
+snakemake --configfile config/hmcl.yml -j 8
 ```

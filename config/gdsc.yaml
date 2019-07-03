@@ -1,0 +1,57 @@
+#
+# HMCL pipeline configuration
+#
+name: hmcl
+version: 0.1
+
+#
+# feature input data
+#
+features:
+  rna: 'rna/GDSC_rna.tsv.gz'
+  cnv: 'cnv/GDSC_cnv.tsv.gz'
+  rna: 'var/GDSC_var.tsv.gz'
+
+#
+# cross validation
+# 
+# parameters to use for outer repeated cross validation
+#
+cv:
+  num_splits: 3
+  num_repeats: 2
+  random_seed: 801372
+
+#
+# feature processing
+#
+
+# minimum number of genes required for a gene set to be used for projecing
+# feature data
+gene_set_min_size: 5
+
+# functions to use when aggregating feature data within gene sets
+aggregation_funcs:
+  rna: median
+  cnv: mean
+  var: sum
+
+# minimum amount of total variance to be accounted for in PCA-projected versions
+# of feature data
+pca_scale: true
+pca_min_variance: 0.95
+
+#
+# feature selection
+#
+feat_selection:
+  rna:
+    min_var_quantile: 0.25
+    max_cor: 0.90
+  cnv:
+    min_var_quantile: 0.25
+    max_cor: 0.95
+  var:
+    min_var_quantile: 0.25
+    max_cor: 0.90
+

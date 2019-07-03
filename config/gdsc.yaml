@@ -1,7 +1,7 @@
 #
-# HMCL pipeline configuration
+# GDSC pipeline configuration
 #
-name: hmcl
+name: gdsc
 version: 0.1
 
 #
@@ -10,7 +10,7 @@ version: 0.1
 features:
   rna: 'rna/GDSC_rna.tsv.gz'
   cnv: 'cnv/GDSC_cnv.tsv.gz'
-  rna: 'var/GDSC_var.tsv.gz'
+  var: 'var/GDSC_var.tsv.gz'
 
 #
 # cross validation

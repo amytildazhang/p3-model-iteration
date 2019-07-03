@@ -15,14 +15,12 @@ from os.path import join
 from pathlib import Path
 from sklearn.model_selection import RepeatedKFold
 
-configfile: "config.yaml"
-
 # base data directory
 input_dir = join('data', config['name'])
 output_dir = join('output', config['name'], str(config['version']))
 
 # load sample metadata
-samples = pd.read_csv(join(input_dir, 'metadata', 'samples.tsv'))
+samples = pd.read_csv(join(input_dir, 'metadata', 'samples.tsv'), sep='\t')
 
 # gene sets
 gene_set_files = [os.path.basename(x) for x in glob.glob('gene_sets/*.gmt.gz')]

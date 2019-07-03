@@ -121,10 +121,13 @@ for (drug_id in rownames(drug_ic50)) {
 }
 
 # save sample metadata
-write_tsv(pData(rna_eset), file.path(output_dir, 'GDSC_samples.tsv'))
+sample_metadata <- pData(rna_eset) %>%
+  select(cell_line = celid, tissueid)
+
+write_tsv(sample_metadata, file.path(output_dir, 'GDSC_samples.tsv'))
 
 # save feature data
-write_tsv(mut_dat, file.path(output_dir, 'GDSC_mut.tsv.gz'))
+write_tsv(mut_dat, file.path(output_dir, 'GDSC_var.tsv.gz'))
 write_tsv(rna_dat, file.path(output_dir, 'GDSC_rna.tsv.gz'))
 write_tsv(cnv_dat, file.path(output_dir, 'GDSC_cnv.tsv.gz'))
 

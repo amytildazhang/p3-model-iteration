@@ -18,24 +18,19 @@ from sklearn.model_selection import RepeatedKFold
 configfile: "config.yaml"
 
 # base data directory
-data_dir = join('data', config['name'])
-build_dir = join('output', config['name'], str(config['version']))
+input_dir = join('data', config['name'])
+output_dir = join('output', config['name'], str(config['version']))
 
 # load sample metadata
-samples = pd.read_csv(join(data_dir, 'metadata', 'samples.tsv'))
-
-# feature dataset versions
-rna_datasets = [Path(x).name.replace('.tsv.gz', '') for x in glob.glob(join(data_dir, 'rnaseq/*.tsv.gz'))]
-cnv_datasets = [Path(x).name.replace('.tsv.gz', '') for x in glob.glob(join(data_dir, 'cnv/*.tsv.gz'))]
-var_datasets = [Path(x).name.replace('.tsv.gz', '') for x in glob.glob(join(data_dir, 'variants/*tsv.gz'))]
-
-# drug response input files
-response_files = [Path(x).name for x in glob.glob(join(data_dir, 'response/*.tsv.gz'))]
-response_datasets = [x.replace('.tsv.gz', '') for x in response_files]
+samples = pd.read_csv(join(input_dir, 'metadata', 'samples.tsv'))
 
 # gene sets
 gene_set_files = [os.path.basename(x) for x in glob.glob('gene_sets/*.gmt.gz')]
 gene_sets = [Path(x).name.replace('.gmt.gz', '') for x in gene_set_files]
+
+# drug response input files
+response_files = [Path(x).name for x in glob.glob(join(input_dir, 'response/*.tsv.gz'))]
+drug_names = [x.replace('.tsv.gz', '') for x in response_files] 
 
 #
 # Cross-validation setup
@@ -47,11 +42,12 @@ rkf = RepeatedKFold(n_splits=config['cv']['num_splits'],
 cv_folds = rkf.split(range(samples.shape[0]))
 
 # convert from list of tuples to a nested dict for better snakemake compatibility
-cv_folds = {i: { 'train': x[0], 'test': x[1] } for i, x in enumerate(cv_folds)}
+cv_folds = {'{0:02d}'.format(i + 1): { 'train': x[0], 'test': x[1] } for i, x in enumerate(cv_folds)}
 
 # list of sequential numbers equal to the total number of folds to be tested;
 # used to let snakemake know what files are to be expected
-cv_indices = list(range(config['cv']['num_splits'] * config['cv']['num_repeats']))
+num_folds = config['cv']['num_splits'] * config['cv']['num_repeats']
+cv_indices = [f'{x:02}' for x in list(range(1, num_folds + 1))]
 
 #
 # Rules
@@ -59,50 +55,42 @@ cv_indices = list(range(config['cv']['num_splits'] * config['cv']['num_repeats']
 #
 rule all:
     input:
-        train=[expand(join(build_dir, '{cv}/train/combined/orig/{response}/{rna}/{cnv}/{var}/combined.tsv.gz'),
-                      cv=cv_indices, rna=rna_datasets, cnv=cnv_datasets, var=var_datasets, response=response_datasets)],
-               #expand(join(build_dir, '{cv}/train/combined/pca/{response}/{rna}/{cnv}/{var}/combined.tsv.gz'),
-               #       cv=cv_indices, rna=rna_datasets, cnv=cnv_datasets, var=var_datasets, response=response_datasets),
-               #expand(join(build_dir, '{cv}/train/combined/gene_set_{gene_set}/{response}/{rna}/{cnv}/{var}/combined.tsv.gz'),
-               #       cv=cv_indices, gene_set=gene_sets, rna=rna_datasets, cnv=cnv_datasets, var=var_datasets, response=response_datasets)],
-        test=[expand(join(build_dir, '{cv}/test/raw/rnaseq/{rna}.tsv.gz'), cv=cv_indices, rna=rna_datasets),
-              expand(join(build_dir, '{cv}/test/raw/cnv/{cnv}.tsv.gz'), cv=cv_indices, cnv=cnv_datasets),
-              expand(join(build_dir, '{cv}/test/raw/variants/{var}.tsv.gz'), cv=cv_indices, var=var_datasets),
-              expand(join(build_dir, '{cv}/test/raw/response/{response}.tsv.gz'), cv=cv_indices, response=response_datasets)]
+        expand(join(output_dir, '{cv}/train/combined/orig/{response}/train.tsv.gz'), cv=cv_indices, response=drug_names),
+        expand(join(output_dir, '{cv}/train/combined/gene_set_projected/{response}/train.tsv.gz'), cv=cv_indices, response=drug_names)
 
 #
 # combine feature and response data
 #
 rule create_training_sets:
     input:
-        join(build_dir, '{cv}/train/filtered/rnaseq/orig/{rna}.tsv.gz'),
-        join(build_dir, '{cv}/train/filtered/cnv/orig/{cnv}.tsv.gz'),
-        join(build_dir, '{cv}/train/filtered/variants/orig/{var}.tsv.gz'),
-        join(build_dir, '{cv}/train/raw/response/{response}.tsv.gz')
+        join(output_dir, '{cv}/train/filtered/orig/rna.tsv.gz'),
+        join(output_dir, '{cv}/train/filtered/orig/cnv.tsv.gz'),
+        join(output_dir, '{cv}/train/filtered/orig/var.tsv.gz'),
+        join(output_dir, '{cv}/train/raw/response/{response}.tsv.gz')
     output:
-        join(build_dir, '{cv}/train/combined/orig/{response}/{rna}/{cnv}/{var}/train.tsv.gz')
+        join(output_dir, '{cv}/train/combined/orig/{response}/train.tsv.gz')
     script:
         'scripts/create_training_set.R'
 
-rule create_pca_projected_training_sets:
-    input:
-        join(build_dir, '{cv}/train/filtered/rnaseq/pca/{rna}.tsv.gz'),
-        join(build_dir, '{cv}/train/filtered/cnv/pca/{cnv}.tsv.gz'),
-        join(build_dir, '{cv}/train/filtered/variants/pca/{var}.tsv.gz'),
-        join(build_dir, '{cv}/train/raw/response/{response}.tsv.gz')
-    output:
-        join(build_dir, '{cv}/train/combined/pca/{response}/{rna}/{cnv}/{var}/train.tsv.gz')
-    script:
-        'scripts/create_training_set.R'
+#rule create_pca_projected_training_sets:
+#    input:
+#        join(output_dir, '{cv}/train/filtered/rna.tsv.gz'),
+#        join(output_dir, '{cv}/train/filtered/cnv.tsv.gz'),
+#        join(output_dir, '{cv}/train/filtered/var.tsv.gz'),
+#        join(output_dir, '{cv}/train/raw/response/{response}.tsv.gz')
+#    output:
+#        join(output_dir, '{cv}/train/combined/pca/{response}/{rna}/{cnv}/{var}/train.tsv.gz')
+#    script:
+#        'scripts/create_training_set.R'
 
 rule create_gene_set_projected_training_sets:
     input:
-        join(build_dir, '{cv}/train/filtered/rnaseq/gene_sets/{gene_set}/{rna}.tsv.gz'),
-        join(build_dir, '{cv}/train/filtered/cnv/gene_sets/{gene_set}/{cnv}.tsv.gz'),
-        join(build_dir, '{cv}/train/filtered/variants/gene_sets/{gene_set}/{var}.tsv.gz'),
-        join(build_dir, '{cv}/train/raw/response/{response}.tsv.gz')
+        join(output_dir, '{cv}/train/filtered/gene_set_projected/rna.tsv.gz'),
+        join(output_dir, '{cv}/train/filtered/gene_set_projected/cnv.tsv.gz'),
+        join(output_dir, '{cv}/train/filtered/gene_set_projected/var.tsv.gz'),
+        join(output_dir, '{cv}/train/raw/response/{response}.tsv.gz')
     output:
-        join(build_dir, '{cv}/train/combined/gene_set_{gene_set}/{response}/{rna}/{cnv}/{var}/train.tsv.gz')
+        join(output_dir, '{cv}/train/combined/gene_set_projected/{response}/train.tsv.gz')
     script:
         'scripts/create_training_set.R'
 
@@ -110,128 +98,122 @@ rule create_gene_set_projected_training_sets:
 # Feature selection
 #
 rule select_rna_features:
-    input: join(build_dir, '{cv}/train/raw/rnaseq/{rna}.tsv.gz')
-    output: join(build_dir, '{cv}/train/filtered/rnaseq/orig/{rna}.tsv.gz')
+    input: join(output_dir, '{cv}/train/raw/rna.tsv.gz')
+    output: join(output_dir, '{cv}/train/filtered/orig/rna.tsv.gz')
     script: 'scripts/select_features.R'
 
 rule select_cnv_features:
-    input: join(build_dir, '{cv}/train/raw/cnv/{cnv}.tsv.gz')
-    output: join(build_dir, '{cv}/train/filtered/cnv/orig/{cnv}.tsv.gz')
+    input: join(output_dir, '{cv}/train/raw/cnv.tsv.gz')
+    output: join(output_dir, '{cv}/train/filtered/orig/cnv.tsv.gz')
     script: 'scripts/select_features.R'
 
-rule select_variant_features:
-    input: join(build_dir, '{cv}/train/raw/variants/{var}.tsv.gz')
-    output: join(build_dir, '{cv}/train/filtered/variants/orig/{var}.tsv.gz')
+rule select_var_features:
+    input: join(output_dir, '{cv}/train/raw/var.tsv.gz')
+    output: join(output_dir, '{cv}/train/filtered/orig/var.tsv.gz')
     script: 'scripts/select_features.R'
 
-rule select_rna_pca_features:
-    input: join(build_dir, '{cv}/train/processed/rnaseq/pca/{rna}.tsv.gz')
-    output: join(build_dir, '{cv}/train/filtered/rnaseq/pca/{rna}.tsv.gz')
-    script: 'scripts/select_features.R'
+#rule select_rna_pca_features:
+#    input: join(output_dir, '{cv}/train/pca_projected/rna.tsv.gz')
+#    output: join(output_dir, '{cv}/train/filtered/rna.tsv.gz')
+#    script: 'scripts/select_features.R'
 
-rule select_cnv_pca_features:
-    input: join(build_dir, '{cv}/train/processed/cnv/pca/{cnv}.tsv.gz')
-    output: join(build_dir, '{cv}/train/filtered/cnv/pca/{cnv}.tsv.gz')
-    script: 'scripts/select_features.R'
+#rule select_cnv_pca_features:
+#    input: join(output_dir, '{cv}/train/pca_projected/cnv/pca/{cnv}.tsv.gz')
+#    output: join(output_dir, '{cv}/train/filtered/cnv/pca/{cnv}.tsv.gz')
+#    script: 'scripts/select_features.R'
 
-rule select_variant_pca_features:
-    input: join(build_dir, '{cv}/train/processed/variants/pca/{var}.tsv.gz')
-    output: join(build_dir, '{cv}/train/filtered/variants/pca/{var}.tsv.gz')
-    script: 'scripts/select_features.R'
+#rule select_var_pca_features:
+#    input: join(output_dir, '{cv}/train/pca_projected/var.tsv.gz')
+#    output: join(output_dir, '{cv}/train/filtered/var.tsv.gz')
+#    script: 'scripts/select_features.R'
 
 rule select_rna_gene_set_features:
-    input: join(build_dir, '{cv}/train/processed/rnaseq/gene_sets/{gene_set}/{rna}.tsv.gz')
-    output: join(build_dir, '{cv}/train/filtered/rnaseq/gene_sets/{gene_set}/{rna}.tsv.gz')
+    input: join(output_dir, '{cv}/train/gene_set_projected/rna.tsv.gz')
+    output: join(output_dir, '{cv}/train/filtered/gene_set_projected/rna.tsv.gz')
     script: 'scripts/select_features.R'
 
 rule select_cnv_gene_set_features:
-    input: join(build_dir, '{cv}/train/processed/cnv/gene_sets/{gene_set}/{cnv}.tsv.gz')
-    output: join(build_dir, '{cv}/train/filtered/cnv/gene_sets/{gene_set}/{cnv}.tsv.gz')
+    input: join(output_dir, '{cv}/train/gene_set_projected/cnv.tsv.gz')
+    output: join(output_dir, '{cv}/train/filtered/gene_set_projected/cnv.tsv.gz')
     script: 'scripts/select_features.R'
 
-rule select_variant_gene_set_features:
-    input: join(build_dir, '{cv}/train/processed/variants/gene_sets/{gene_set}/{var}.tsv.gz')
-    output: join(build_dir, '{cv}/train/filtered/variants/gene_sets/{gene_set}/{var}.tsv.gz')
+rule select_var_gene_set_features:
+    input: join(output_dir, '{cv}/train/gene_set_projected/var.tsv.gz')
+    output: join(output_dir, '{cv}/train/filtered/gene_set_projected/var.tsv.gz')
     script: 'scripts/select_features.R'
 
 #
 # Gene set aggregation
 #
-rule rna_gene_sets:
-    input:
-        features = join(build_dir, '{cv}/train/raw/rnaseq/{rna}.tsv.gz'),
-        gene_set = 'gene_sets/{gene_set}.gmt.gz'
-    output: join(build_dir, '{cv}/train/processed/rnaseq/gene_sets/{gene_set}/{rna}.tsv.gz')
+rule project_rna_gene_sets:
+    input: join(output_dir, '{cv}/train/raw/rna.tsv.gz'),
+    output: join(output_dir, '{cv}/train/gene_set_projected/rna.tsv.gz')
     script: 'scripts/project_gene_sets.R'
 
-rule cnv_gene_sets:
-    input:
-        features = join(build_dir, '{cv}/train/raw/cnv/{cnv}.tsv.gz'),
-        gene_set = 'gene_sets/{gene_set}.gmt.gz'
-    output: join(build_dir, '{cv}/train/processed/cnv/gene_sets/{gene_set}/{cnv}.tsv.gz')
+rule project_cnv_gene_sets:
+    input: join(output_dir, '{cv}/train/raw/cnv.tsv.gz'),
+    output: join(output_dir, '{cv}/train/gene_set_projected/cnv.tsv.gz')
     script: 'scripts/project_gene_sets.R'
 
-rule variant_gene_sets:
-    input:
-        features = join(build_dir, '{cv}/train/raw/variants/{var}.tsv.gz'),
-        gene_set = 'gene_sets/{gene_set}.gmt.gz'
-    output: join(build_dir, '{cv}/train/processed/variants/gene_sets/{gene_set}/{var}.tsv.gz')
+rule project_var_gene_sets:
+    input: join(output_dir, '{cv}/train/raw/var.tsv.gz'),
+    output: join(output_dir, '{cv}/train/gene_set_projected/var.tsv.gz')
     script: 'scripts/project_gene_sets.R'
 
 #
 # PCA projection
 #
-rule rna_pca:
-    input: join(build_dir, '{cv}/train/raw/rnaseq/{rna}.tsv.gz')
-    output: join(build_dir, '{cv}/train/processed/rnaseq/pca/{rna}.tsv.gz')
-    script: 'scripts/project_pca.R'
+#rule project_rna_pca:
+#    input: join(output_dir, '{cv}/train/raw/rna.tsv.gz')
+#    output: join(output_dir, '{cv}/train/pca_projected/rna.tsv.gz')
+#    script: 'scripts/project_pca.R'
 
-rule cnv_pca:
-    input: join(build_dir, '{cv}/train/raw/cnv/{cnv}.tsv.gz')
-    output: join(build_dir, '{cv}/train/processed/cnv/pca/{cnv}.tsv.gz')
-    script: 'scripts/project_pca.R'
+#rule project_cnv_pca:
+#    input: join(output_dir, '{cv}/train/raw/cnv.tsv.gz')
+#    output: join(output_dir, '{cv}/train/pca_projected/cnv.tsv.gz')
+#    script: 'scripts/project_pca.R'
 
-rule variant_pca:
-    input: join(build_dir, '{cv}/train/raw/variants/{var}.tsv.gz')
-    output: join(build_dir, '{cv}/train/processed/variants/pca/{var}.tsv.gz')
-    script: 'scripts/project_pca.R'
+#rule project_var_pca:
+#    input: join(output_dir, '{cv}/train/raw/var.tsv.gz')
+#    output: join(output_dir, '{cv}/train/pca_projected/var.tsv.gz')
+#    script: 'scripts/project_pca.R'
 
 #
 # Cross validation splits
 #
 rule create_rna_cv_folds:
-    input: join(data_dir, 'rnaseq/{rna}.tsv.gz')
+    input: join(input_dir, config['features']['rna'])
     output:
-        join(build_dir, '{cv}/train/raw/rnaseq/{rna}.tsv.gz'),
-        join(build_dir, '{cv}/test/raw/rnaseq/{rna}.tsv.gz'),
+        join(output_dir, '{cv}/train/raw/rna.tsv.gz'),
+        join(output_dir, '{cv}/test/raw/rna.tsv.gz'),
     params:
         cv_folds=cv_folds
     script: 'scripts/create_cv_folds.R'
 
 rule create_cnv_cv_folds:
-    input: join(data_dir, 'cnv/{cnv}.tsv.gz')
+    input: join(input_dir, config['features']['cnv'])
     output:
-        join(build_dir, '{cv}/train/train/raw/cnv/{cnv}.tsv.gz'),
-        join(build_dir, '{cv}/test/train/raw/cnv/{cnv}.tsv.gz'),
+        join(output_dir, '{cv}/train/raw/cnv.tsv.gz'),
+        join(output_dir, '{cv}/test/raw/cnv.tsv.gz'),
     params:
         cv_folds=cv_folds
     script: 'scripts/create_cv_folds.R'
 
-rule create_variant_folds:
-    input: join(data_dir, 'variants/{var}.tsv.gz')
+rule create_var_cv_folds:
+    input: join(input_dir, config['features']['var'])
     output:
-        join(build_dir, '{cv}/train/train/raw/variants/{var}.tsv.gz'),
-        join(build_dir, '{cv}/test/train/raw/variants/{var}.tsv.gz')
+        join(output_dir, '{cv}/train/raw/var.tsv.gz'),
+        join(output_dir, '{cv}/test/raw/var.tsv.gz')
     params:
         cv_folds=cv_folds
     script: 'scripts/create_cv_folds.R'
 
 rule create_response_folds:
-    input: join(data_dir, 'response/{response}.tsv.gz')
+    input: join(input_dir, 'response/{response}.tsv.gz')
     output:
-        join(build_dir, '{cv}/train/raw/response/{response}.tsv.gz'),
-        join(build_dir, '{cv}/test/raw/response/{response}.tsv.gz')
+        join(output_dir, '{cv}/train/raw/response/{response}.tsv.gz'),
+        join(output_dir, '{cv}/test/raw/response/{response}.tsv.gz')
     params:
         cv_folds=cv_folds
-    script: 'scripts/create_response_cv_folds.R'
+    script: 'scripts/create_cv_folds.R'
 

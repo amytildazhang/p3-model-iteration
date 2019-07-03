@@ -7,19 +7,22 @@ suppressMessages(library(tidyverse))
 
 options(stringsAsFactors = FALSE)
 
-# determine input data type from wildcards
-if ('rna' %in% names(snakemake@wildcards)) {
-  data_type <- 'rna'
-} else if ('cnv' %in% names(snakemake@wildcards)) {
-  data_type <- 'cnv'
-} else if ('var' %in% names(snakemake@wildcards)) {
-  data_type <- 'var'
-}
+# determine input data type from wildcards ("create_rna_gene_sets")
+data_type <- strsplit(snakemake@rule, '_')[[1]][[2]] 
 
 # load feature data
-dat <- read_tsv(snakemake@input$features, col_types = cols())
+dat <- read_tsv(snakemake@input[[1]], col_types = cols())
 
-gene_sets <- geneIds(getGmt(gzfile(snakemake@input$gene_set)))
+# load gene sets
+gene_sets = c()
+
+message(sprintf("Loading gene sets for %s", data_type))
+
+for (infile in Sys.glob('gene_sets/*.gmt.gz')) {
+  fp <- gzfile(infile)
+  gene_sets <- c(gene_sets, geneIds(getGmt(fp)))
+  close(fp)
+}
 
 # remove gene set :length suffixes, if present
 names(gene_sets) <- sub(':\\d+$', '', names(gene_sets)) 
@@ -41,6 +44,8 @@ gset_names <- c()
 # determine which aggregation function to use
 agg_func <- snakemake@config$aggregation_funcs[[data_type]]
 
+message(sprintf('Aggregating %s along gene sets...', data_type))
+
 for (gset in names(gene_sets)) {
   dat_gset <- dat %>%
     filter(symbol %in% gene_sets[[gset]])
@@ -55,8 +60,11 @@ for (gset in names(gene_sets)) {
 }
 
 # drop any rows with zero variance (uninformative)
-row_vars <- apply(res, 1, var)
-res <- res[row_vars != 0, ]
+mask <- apply(res, 1, var) > 0
+res <- res[mask, ]
+gset_names <- gset_names[mask]
+
+message(sprintf('Saving gene sets aggregated %s data...', data_type))
 
 res <- bind_cols(gene_set = gset_names, as.data.frame(res))
 

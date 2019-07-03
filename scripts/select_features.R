@@ -10,14 +10,8 @@ options(stringsAsFactors = FALSE)
 
 dat <- read_tsv(snakemake@input[[1]], col_types = cols())
 
-# determine input data type from wildcards
-if ('rna' %in% names(snakemake@wildcards)) {
-  data_type <- 'rna'
-} else if ('cnv' %in% names(snakemake@wildcards)) {
-  data_type <- 'cnv'
-} else if ('var' %in% names(snakemake@wildcards)) {
-  data_type <- 'var'
-}
+# determine input data type from wildcards ("select_xx_")
+data_type <- strsplit(snakemake@rule, '_')[[1]][[2]] 
 
 # remove low variance features from dataset
 row_vars <- apply(dat[, -1], 1, var)

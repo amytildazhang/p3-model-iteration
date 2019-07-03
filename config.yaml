@@ -5,6 +5,14 @@ name: hmcl
 version: 0.1
 
 #
+# feature input data
+#
+features:
+  rna: 'rna/rnaseq_grch38_featurecounts_cpm.tsv.gz'
+  cnv: 'cnv/cnv_rcgh_gene_table_log2ratio_hg38.tsv.gz'
+  var: 'var/exome_variants_by_gene_grch38.tsv.gz'
+
+#
 # cross validation
 # 
 # parameters to use for outer repeated cross validation

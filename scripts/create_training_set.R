@@ -9,7 +9,7 @@ options(stringsAsFactors = FALSE)
 # create a list to store non-empty datasets in
 dsets <- list()
 
-data_types <- c('rna', 'cnv', 'variants')
+data_types <- c('rna', 'cnv', 'var')
 
 for (i in 1:length(data_types)) {
   # load feature data

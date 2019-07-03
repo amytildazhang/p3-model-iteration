@@ -102,6 +102,12 @@ mut_dat <- mut_dat[, mask]
 #    FALSE 
 #    1
 
+# remove any genes with no variance
+gene_mask <- apply(rna_dat, 1, var, na.rm = TRUE) > 0
+table(gene_mask)
+rna_dat <- rna_dat[gene_mask, ]
+
+#..... cnv/var
 
 # load sample metadata
 sample_metadata <- pData(rna_eset) %>%
@@ -152,6 +158,9 @@ drug_ic50 <- summarizeSensitivityProfiles(gdsc, sensitivity.measure = 'ic50_reco
 for (drug_id in rownames(drug_ic50)) {
   ic50_dat <- data.frame(cell_line = colnames(drug_ic50), ic50 = drug_ic50[drug_id, ])
 
+  # keep samples with sufficient feature data
+  ic50_dat <- ic50_dat[ic50_dat$cell_line %in% colnames(rna_dat), ]
+
   # construction a 1 x <num samples> dataframe with response data
   ic50_dat <- t(as.data.frame(setNames(ic50_dat$ic50, ic50_dat$cell_line)))
   ic50_dat <- cbind(data.frame(response='ic50_recomputed'), ic50_dat)
@@ -168,3 +177,4 @@ write_tsv(mut_dat, file.path(output_dir, 'GDSC_var.tsv.gz'))
 write_tsv(rna_dat, file.path(output_dir, 'GDSC_rna.tsv.gz'))
 write_tsv(cnv_dat, file.path(output_dir, 'GDSC_cnv.tsv.gz'))
 write_tsv(sample_metadata, file.path(output_dir, 'GDSC_samples.tsv'))
+

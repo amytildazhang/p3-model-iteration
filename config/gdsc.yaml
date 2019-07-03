@@ -18,8 +18,8 @@ features:
 # parameters to use for outer repeated cross validation
 #
 cv:
-  num_splits: 3
-  num_repeats: 2
+  num_splits: 5
+  num_repeats: 3
   random_seed: 801372
 
 #

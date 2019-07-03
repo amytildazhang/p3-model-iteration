@@ -19,7 +19,7 @@ features:
 #
 cv:
   num_splits: 3
-  num_repeats: 5
+  num_repeats: 2
   random_seed: 801372
 
 #

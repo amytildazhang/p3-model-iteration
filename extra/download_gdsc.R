@@ -35,11 +35,21 @@ gdsc <- downloadPSet('GDSC', saveDir = output_dir)
 rna_eset <- summarizeMolecularProfiles(gdsc, mDataType = "rna")
 rna_dat <- bind_cols(symbol = fData(rna_eset)$Symbol, as.data.frame(exprs(rna_eset)))
 
+# drop rna entries that could not be mapped to gene symbols
+
+table(is.na(rna_dat$symbol))
+# 
+# FALSE  TRUE 
+# 11712   121 
+
+rna_dat <- rna_dat[!is.na(rna_dat$symbol), ]
+
+
 #
 # mutation data
 #
 mut_eset <- summarizeMolecularProfiles(gdsc, mDataType = "mutation", summary.stat = 'or')
-mut_dat <- as.data.frame(cbind(symbol = fData(mut_eset)$gene_name, exprs(mut_eset)))
+mut_dat <- as.data.frame(cbind(symbol = rownames(mut_eset), exprs(mut_eset)))
 
 # convert to numeric
 for (cname in colnames(mut_dat)[-1]) {
@@ -50,7 +60,7 @@ for (cname in colnames(mut_dat)[-1]) {
 # cnv data
 #
 cnv_eset <- summarizeMolecularProfiles(gdsc, mDataType = "cnv")
-cnv_dat <- as.data.frame(cbind(symbol = fData(cnv_eset)$Symbol, exprs(cnv_eset)))
+cnv_dat <- as.data.frame(cbind(symbol = rownames(cnv_eset), exprs(cnv_eset)))
 
 # convert to numeric
 for (cname in colnames(cnv_dat)[-1]) {
@@ -58,6 +68,8 @@ for (cname in colnames(cnv_dat)[-1]) {
 }
 
 # drop any samples that are completely missing for one or more data types
+message("Dropping samples that are completely missing for one or more data types...")
+
 all_missing <- function(x) {
   sum(is.na(x)) == length(x)
 }
@@ -114,12 +126,17 @@ mut_dat <- mut_dat[mut_gene_mask, ]
 
 
 # collapse multi-mapped rna entries (120 / 11893)
-rna_dat <- rna_dat %>%
-  group_by(symbol) %>%
-  summarize_all(mean) %>%
-  ungroup
+#message("Collaprsing multi-mapped RNA entries...")
 
-rna_dat <- rna_dat[!is.na(rna_dat$symbol), ]
+#table(duplicated(rna_dat$symbol))
+# 
+# FALSE 
+# 11833 
+
+#rna_dat <- rna_dat %>%
+#  group_by(symbol) %>%
+#  summarize_all(mean) %>%
+#  ungroup
 
 # load sample metadata
 sample_metadata <- pData(rna_eset) %>%

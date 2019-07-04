@@ -3,11 +3,6 @@
 # V. Keith Hughitt
 # June 2019
 #
-# Note 2019/06/25: possible simplifications
-#
-#  - assume one version of each of the feature datasets
-#  - create a single gene set proj. version of each data using all gene sets
-#
 import glob
 import os
 import pandas as pd
@@ -57,6 +52,15 @@ rule all:
         expand(join(output_dir, '{cv}/train/training_sets/gene_set_projected/{response}.tsv.gz'), cv=cv_indices, response=drug_names)
 
 #
+# train models
+#
+#rule train_rf_models:
+#    input: join(output_dir, '{cv}/train/training_sets/orig/{response}.tsv.gz')
+#    output: join(output_dir, '{cv}/train/models/orig/{response}.tsv.gz')
+#    script: 'scripts/train_random_forest_model.R'
+
+
+#
 # combine feature and response data
 #
 rule create_training_sets:
@@ -99,47 +103,47 @@ rule create_gene_set_projected_training_sets:
 rule select_rna_features:
     input: join(output_dir, '{cv}/train/raw/orig/rna.tsv.gz')
     output: join(output_dir, '{cv}/train/filtered/orig/rna.tsv.gz')
-    script: 'scripts/select_features.R'
+    script: 'scripts/filter_features.R'
 
 rule select_cnv_features:
     input: join(output_dir, '{cv}/train/raw/orig/cnv.tsv.gz')
     output: join(output_dir, '{cv}/train/filtered/orig/cnv.tsv.gz')
-    script: 'scripts/select_features.R'
+    script: 'scripts/filter_features.R'
 
 rule select_var_features:
     input: join(output_dir, '{cv}/train/raw/orig/var.tsv.gz')
     output: join(output_dir, '{cv}/train/filtered/orig/var.tsv.gz')
-    script: 'scripts/select_features.R'
+    script: 'scripts/filter_features.R'
 
 #rule select_rna_pca_features:
 #    input: join(output_dir, '{cv}/train/raw/pca_projected/rna.tsv.gz')
 #    output: join(output_dir, '{cv}/train/filtered/pca_projected/rna.tsv.gz')
-#    script: 'scripts/select_features.R'
+#    script: 'scripts/filter_features.R'
 
 #rule select_cnv_pca_features:
 #    input: join(output_dir, '{cv}/train/raw/pca_projected/cnv/pca/{cnv}.tsv.gz')
 #    output: join(output_dir, '{cv}/train/filtered/pca_projected/cnv/pca/{cnv}.tsv.gz')
-#    script: 'scripts/select_features.R'
+#    script: 'scripts/filter_features.R'
 
 #rule select_var_pca_features:
 #    input: join(output_dir, '{cv}/train/raw/pca_projected/var.tsv.gz')
 #    output: join(output_dir, '{cv}/train/filtered/pca_projected/var.tsv.gz')
-#    script: 'scripts/select_features.R'
+#    script: 'scripts/filter_features.R'
 
 rule select_rna_gene_set_features:
     input: join(output_dir, '{cv}/train/raw/gene_set_projected/rna.tsv.gz')
     output: join(output_dir, '{cv}/train/filtered/gene_set_projected/rna.tsv.gz')
-    script: 'scripts/select_features.R'
+    script: 'scripts/filter_features.R'
 
 rule select_cnv_gene_set_features:
     input: join(output_dir, '{cv}/train/raw/gene_set_projected/cnv.tsv.gz')
     output: join(output_dir, '{cv}/train/filtered/gene_set_projected/cnv.tsv.gz')
-    script: 'scripts/select_features.R'
+    script: 'scripts/filter_features.R'
 
 rule select_var_gene_set_features:
     input: join(output_dir, '{cv}/train/raw/gene_set_projected/var.tsv.gz')
     output: join(output_dir, '{cv}/train/filtered/gene_set_projected/var.tsv.gz')
-    script: 'scripts/select_features.R'
+    script: 'scripts/filter_features.R'
 
 #
 # Gene set aggregation

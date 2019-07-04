@@ -42,9 +42,9 @@ pca_scale: true
 pca_min_variance: 0.95
 
 #
-# feature selection
+# feature filtering
 #
-feat_selection:
+feature_filtering:
   rna:
     min_var_quantile: 0.25
     max_cor: 0.90

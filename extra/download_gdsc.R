@@ -33,16 +33,7 @@ gdsc <- downloadPSet('GDSC', saveDir = output_dir)
 
 # Extract RNA expression data to a matrix
 rna_eset <- summarizeMolecularProfiles(gdsc, mDataType = "rna")
-
-# collapse multi-mapped entries (120 / 11893)
 rna_dat <- bind_cols(symbol = fData(rna_eset)$Symbol, as.data.frame(exprs(rna_eset)))
-
-rna_dat <- rna_dat %>%
-  group_by(symbol) %>%
-  summarize_all(mean) %>%
-  ungroup
-
-rna_dat <- rna_dat[!is.na(rna_dat$symbol), ]
 
 #
 # mutation data
@@ -102,12 +93,33 @@ mut_dat <- mut_dat[, mask]
 #    FALSE 
 #    1
 
-# remove any genes with no variance
-gene_mask <- apply(rna_dat, 1, var, na.rm = TRUE) > 0
-table(gene_mask)
-rna_dat <- rna_dat[gene_mask, ]
+# remove mutatation gene entries with all missing values
+mut_gene_mask <- apply(mut_dat[, -1], 1, function(x) { sum(is.na(x)) }) < (ncol(mut_dat) - 1)
 
-#..... cnv/var
+#table(mut_gene_mask)
+# mut_gene_mask
+# FALSE  TRUE 
+#    16    54 
+
+mut_dat <- mut_dat[mut_gene_mask, ]
+
+# remove mutation data entries with zero variance
+mut_gene_mask <- apply(mut_dat[, -1], 1, var, na.rm = TRUE) > 0
+mut_dat <- mut_dat[mut_gene_mask, ]
+
+#table(mut_gene_mask)
+# mut_gene_mask
+# FALSE  TRUE 
+#     8    46 
+
+
+# collapse multi-mapped rna entries (120 / 11893)
+rna_dat <- rna_dat %>%
+  group_by(symbol) %>%
+  summarize_all(mean) %>%
+  ungroup
+
+rna_dat <- rna_dat[!is.na(rna_dat$symbol), ]
 
 # load sample metadata
 sample_metadata <- pData(rna_eset) %>%

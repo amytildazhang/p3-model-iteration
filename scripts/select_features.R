@@ -30,6 +30,13 @@ if (snakemake@config$feature_selection$method == 'boruta') {
   features <- boruta_feature_selection(dat, snakemake) 
 } else if (snakemake@config$feature_selection$method == 'rfe') {
   features <- rfe_feature_selection(dat, snakemake) 
+} else if (snakemake@config$feature_selection$method == 'none') {
+  # if the feature selection method is set to "none", we can stop here and
+  # simply return the full dataset
+  write_tsv(dat, snakemake@output[[1]])
+  quit(save = 'no')
+} else {
+  stop("Invalid feature selection method specified!")
 }
 
 message(sprintf("Found %d features during first round of selection using %s...",
@@ -47,6 +54,13 @@ if (length(features) < snakemake@config$feature_selection$min_features) {
   } else if (snakemake@config$feature_selection$fallback == 'rfe') {
     # fallback: rfe
     features <- rfe_feature_selection(dat, snakemake) 
+  } else if (snakemake@config$feature_selection$method == 'none') {
+    # if the feature selection method is set to "none", we can stop here and
+    # simply return the full dataset
+    write_tsv(dat, snakemake@output[[1]])
+    quit(save = 'no')
+  } else {
+    stop("Invalid fallback feature selection method specified!")
   }
 
   message(sprintf("Found %d features during fallback round of selection using %s...",

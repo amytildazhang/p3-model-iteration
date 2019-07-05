@@ -20,6 +20,10 @@ from os.path import join
 from pathlib import Path
 from sklearn.model_selection import RepeatedKFold
 
+# report debug mode status
+if config['debug']:
+    print("=== DEBUG MODE ENABLED ===")
+
 # base data directory
 input_dir = join('data', config['name'])
 output_dir = join('output', config['name'], str(config['version']))

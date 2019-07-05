@@ -46,7 +46,7 @@ gene_set_projection:
 # minimum amount of total variance to be accounted for in PCA-projected versions
 # of feature data
 pca_projection:
-  enabled: true
+  enabled: false
   scale: true
   min_variance: 0.95
 

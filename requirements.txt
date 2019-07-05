@@ -10,6 +10,7 @@ r-biocmanager
 r-boruta
 r-caret
 r-coop
+r-doparallel
 r-ranger
 r-randomforest
 r-remotes

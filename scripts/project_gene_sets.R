@@ -33,7 +33,7 @@ gene_sets <- lapply(gene_sets, function(x) { sub(',\\d+\\.\\d+$', '', x) })
 
 # exclude any gene sets with fewer than the required number of genes
 set_sizes <- lapply(gene_sets, length)
-mask <- set_sizes >= snakemake@config$gene_set_min_size
+mask <- set_sizes >= snakemake@config$gene_set_projection$gene_set_min_size
 
 gene_sets <- gene_sets[mask]
 
@@ -42,7 +42,7 @@ res <- NULL
 gset_names <- c()
 
 # determine which aggregation function to use
-agg_func <- snakemake@config$aggregation_funcs[[data_type]]
+agg_func <- snakemake@config$gene_set_projection$aggregation_funcs[[data_type]]
 
 ID_COL_INDEX <- 1
 

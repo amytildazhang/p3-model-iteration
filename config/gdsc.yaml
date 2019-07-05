@@ -17,7 +17,7 @@ features:
 # 
 # parameters to use for outer repeated cross validation
 #
-cv:
+cross_validation:
   num_splits: 5
   num_repeats: 3
   random_seed: 801372
@@ -28,23 +28,25 @@ cv:
 
 # minimum number of genes required for a gene set to be used for projecing
 # feature data
-gene_set_min_size: 5
-
-# functions to use when aggregating feature data within gene sets
-aggregation_funcs:
-  rna: median
-  cnv: mean
-  var: sum
+gene_set_projection:
+  enabled: true
+  gene_set_min_size: 5
+  aggregation_funcs:
+    rna: median
+    cnv: mean
+    var: sum
 
 # minimum amount of total variance to be accounted for in PCA-projected versions
 # of feature data
-pca_scale: true
-pca_min_variance: 0.95
+pca_projection:
+  enabled: true
+  scale: true
+  min_variance: 0.95
 
 #
-# feature selection
+# feature filtering
 #
-feat_selection:
+feature_filtering:
   rna:
     min_var_quantile: 0.25
     max_cor: 0.90
@@ -52,6 +54,20 @@ feat_selection:
     min_var_quantile: 0.25
     max_cor: 0.95
   var:
-    min_var_quantile: 0.25
-    max_cor: 0.90
+    min_var_quantile: 0
+    max_cor: 1
+
+#
+# Feature selection
+# 
+# Once the feature data has been filtered and combined into a single training set, a
+# more sophisticated supervised feature selection approach may be applied.
+# 
+# Feature selection is performed using the Boruta wrapper method  with the Ranger
+# implementation of random forests.
+# 
+feature_selection:
+  enabled: true
+  num_trees: 25000
+  mtry: 4
 

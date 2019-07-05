@@ -1,50 +1,75 @@
+################################################################################
 #
 # HMCL pipeline configuration
 #
+################################################################################
 name: hmcl
 version: 0.1
 
 #
-# feature input data
-#
+# Feature input data
+# 
 features:
   rna: 'rna/rnaseq_grch38_featurecounts_cpm.tsv.gz'
   cnv: 'cnv/cnv_rcgh_gene_table_log2ratio_hg38.tsv.gz'
   var: 'var/exome_variants_by_gene_grch38.tsv.gz'
 
 #
-# cross validation
-# 
-# parameters to use for outer repeated cross validation
+# Cross validation
 #
-cv:
+
+# parameters to use for outer repeated cross validation
+cross_validation:
   num_splits: 5
   num_repeats: 3
   random_seed: 801372
 
 #
-# feature processing
+# Pathway aggregation
 #
 
 # minimum number of genes required for a gene set to be used for projecing
 # feature data
-gene_set_min_size: 5
+gene_set_projection:
+  enabled: true
+  gene_set_min_size: 5
+  aggregation_funcs:
+    rna: median
+    cnv: mean
+    var: sum
 
-# functions to use when aggregating feature data within gene sets
-aggregation_funcs:
-  rna: median
-  cnv: mean
-  var: sum
+#
+# PCA projection
+#
 
 # minimum amount of total variance to be accounted for in PCA-projected versions
 # of feature data
-pca_scale: true
-pca_min_variance: 0.95
+pca_projection:
+  enabled: true
+  scale: true
+  min_variance: 0.95
 
 #
-# feature selection
+# Feature filtering
+# 
+# As an early step, some basic unsupervised feature filtering can be performed
+# independently on each feature data type (rna, cnv, var).
 #
-feat_selection:
+# The type of filtering performed include:
+#
+#  1. Minimum variance
+#  2. Maximum correlation
+#
+# For variance-based filtering, a quantile ranging from 0-1 may be specified and all
+# features with variances lower than that quantile will be excluded. For example, if a
+# min_var_quantile values of "0.4" is specified, the bottom 40% of features, in terms of
+# their variances, will be dropped.
+#
+# For correlation-based filtering, a maximum pearson correlation score may be specified
+# and, for each pair of features with a correlation value above the specified cutoff,
+# one of the two features will be removed at random.
+#
+feature_filtering:
   rna:
     min_var_quantile: 0.25
     max_cor: 0.90
@@ -54,3 +79,18 @@ feat_selection:
   var:
     min_var_quantile: 0.25
     max_cor: 0.90
+
+#
+# Feature selection
+# 
+# Once the feature data has been filtered and combined into a single training set, a
+# more sophisticated supervised feature selection approach may be applied.
+# 
+# Feature selection is performed using the Boruta wrapper method  with the Ranger
+# implementation of random forests.
+# 
+feature_selection:
+  enabled: true
+  num_trees: 25000
+  mtry: 4
+

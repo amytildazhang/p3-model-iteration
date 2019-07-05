@@ -7,7 +7,7 @@ options(stringsAsFactors = FALSE)
 
 dat <- read_tsv(snakemake@input[[1]], col_types = cols())
 
-pca <- prcomp(t(dat[, -1]), scale = snakemake@config$pca_scale)
+pca <- prcomp(t(dat[, -1]), scale = snakemake@config$pca_projection$scale)
 
 # the second row of summary(prcomp(..))$importance corresponds to the cumulative
 # proportion of variance explained
@@ -23,7 +23,7 @@ var_explained <- summary(pca)$importance[VAR_IND, ]
 
 # determine the minimum number of PCs required to explain the specified amount of
 # variance in the data
-num_pcs <- which(var_explained >= snakemake@config$pca_min_variance)[1]
+num_pcs <- which(var_explained >= snakemake@config$pca_projection$min_variance)[1]
 
 # get pca-projected version of the data with desired number of PCs
 pca_dat <- t(pca$x[, 1:num_pcs])

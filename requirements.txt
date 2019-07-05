@@ -7,8 +7,11 @@ bioconductor-gseabase
 bioconductor-pharmacogx
 r-base=3.5.1
 r-biocmanager
+r-boruta
 r-caret
 r-coop
+r-ranger
+r-randomforest
 r-remotes
 r-tidyverse
 r-tidymodels

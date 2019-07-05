@@ -73,7 +73,7 @@ rfe_feature_selection <- function(dat, snakemake) {
 
   results <- rfe(dat[, -RESPONSE_IND], dat[, RESPONSE_IND], sizes = num_features, 
                  rfeControl = control)
-  stopcluster(cl)
+  stopCluster(cl)
 
   # determine number of features to keep
   num_features <- min(length(results$opt), snakemake@config$feature_selection$max_features)

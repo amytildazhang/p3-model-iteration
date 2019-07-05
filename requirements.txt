@@ -16,7 +16,7 @@ r-randomforest
 r-remotes
 r-tidyverse
 r-tidymodels
-r-pls
+r-spls
 r-rstan
 r-snow
 r-latex2exp

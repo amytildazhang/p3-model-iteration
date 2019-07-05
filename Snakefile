@@ -13,6 +13,7 @@
 # 6. Feature selection (supervised)
 # 7. Model training 
 #
+#
 import glob
 import os
 import pandas as pd
@@ -54,6 +55,18 @@ cv_indices = [f'{x:02}' for x in list(range(1, num_folds + 1))]
 #
 rule all:
     input: expand(join(output_dir, '{cv}/train/training_sets/selected/{drug}.tsv.gz'), cv=cv_indices, drug=drug_names)
+
+#
+# train models
+#
+#rule train_rf_models:
+#    input: join(output_dir, '{cv}/train/training_sets/orig/{response}.tsv.gz')
+#    output: join(output_dir, '{cv}/train/models/orig/{response}.tsv.gz')
+#    script: 'scripts/train_random_forest_model.R'
+
+
+#
+# combine feature and response data
 
 #
 # Model training (TODO)

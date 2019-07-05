@@ -1,3 +1,5 @@
 .snakemake
 data
 output
+sbatch
+slurm*

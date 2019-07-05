@@ -18,6 +18,11 @@ boruta_feature_selection <- function(dat, snakemake) {
                   num.trees = snakemake@config$feature_selection$num_trees, 
                   mtry = snakemake@config$feature_selection$mtry, doTrace = 1)
 
+  # if development mode is enabled, save model
+  if (snakemake@config$debug) {
+    save(boruta, file = sub('.tsv.gz', '.rda', snakemake@output[[1]]))
+  }
+
   # get selected features
   features <- getSelectedAttributes(boruta, withTentative = TRUE)
 
@@ -71,12 +76,17 @@ rfe_feature_selection <- function(dat, snakemake) {
 
   RESPONSE_IND <- ncol(dat)
 
-  results <- rfe(dat[, -RESPONSE_IND], dat[, RESPONSE_IND], sizes = num_features, 
+  rfe_res <- rfe(dat[, -RESPONSE_IND], dat[, RESPONSE_IND], sizes = num_features, 
                  rfeControl = control)
   stopCluster(cl)
 
-  # determine number of features to keep
-  num_features <- min(length(results$opt), snakemake@config$feature_selection$max_features)
+  # if development mode is enabled, save model
+  if (snakemake@config$debug) {
+    save(rfe_res, file = sub('.tsv.gz', '.rda', snakemake@output[[1]]))
+  }
 
-  head(results$optVariables, num_features)
+  # determine number of features to keep
+  num_features <- min(length(rfe_res$optVariables), snakemake@config$feature_selection$max_features)
+
+  head(rfe_res$optVariables, num_features)
 }

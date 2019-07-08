@@ -58,20 +58,3 @@ feature_filtering:
     min_var_quantile: 0
     max_cor: 1
 
-#
-# Feature selection
-# 
-# Once the feature data has been filtered and combined into a single training set, a
-# more sophisticated supervised feature selection approach may be applied.
-# 
-# Feature selection is performed using the Boruta wrapper method  with the Ranger
-# implementation of random forests.
-# 
-feature_selection:
-  method: boruta
-  fallback: rfe
-  min_features: 5
-  max_features: 1000
-  num_trees: 25000
-  mtry: 4
-

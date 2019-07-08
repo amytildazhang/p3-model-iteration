@@ -51,24 +51,7 @@ pca_projection:
   min_variance: 0.95
 
 #
-# Feature filtering
-# 
-# As an early step, some basic unsupervised feature filtering can be performed
-# independently on each feature data type (rna, cnv, var).
-#
-# The type of filtering performed include:
-#
-#  1. Minimum variance
-#  2. Maximum correlation
-#
-# For variance-based filtering, a quantile ranging from 0-1 may be specified and all
-# features with variances lower than that quantile will be excluded. For example, if a
-# min_var_quantile values of "0.4" is specified, the bottom 40% of features, in terms of
-# their variances, will be dropped.
-#
-# For correlation-based filtering, a maximum pearson correlation score may be specified
-# and, for each pair of features with a correlation value above the specified cutoff,
-# one of the two features will be removed at random.
+# feature filtering
 #
 feature_filtering:
   rna:

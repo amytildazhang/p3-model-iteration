@@ -3,17 +3,6 @@
 # V. Keith Hughitt, Amy Zhang
 # June 2019
 #
-# Pipeline steps:
-#
-# 1. Split data into CV folds
-# 2. Gene set projection [Optional]
-# 3. PCA projection [Optional]
-# 4. Feature filtering (unsupervised)
-# 5. Training set construction
-# 6. Feature selection (supervised)
-# 7. Model training 
-#
-#
 import glob
 import os
 import pandas as pd
@@ -71,6 +60,60 @@ rule all:
 
 #
 # combine feature and response data
+#
+#rule train_rf_models:
+#    input: join(output_dir, '{cv}/train/training_sets/orig/{response}.tsv.gz')
+#    output: join(output_dir, '{cv}/train/models/orig/{response}.tsv.gz')
+#    script: 'scripts/train_random_forest_model.R'
+
+
+#
+# Feature selection
+#
+rule select_rna_features:
+    input: join(output_dir, '{cv}/train/raw/orig/rna.tsv.gz')
+    output: join(output_dir, '{cv}/train/filtered/orig/rna.tsv.gz')
+    script: 'scripts/filter_features.R'
+
+rule select_cnv_features:
+    input: join(output_dir, '{cv}/train/raw/orig/cnv.tsv.gz')
+    output: join(output_dir, '{cv}/train/filtered/orig/cnv.tsv.gz')
+    script: 'scripts/filter_features.R'
+
+rule select_var_features:
+    input: join(output_dir, '{cv}/train/raw/orig/var.tsv.gz')
+    output: join(output_dir, '{cv}/train/filtered/orig/var.tsv.gz')
+    script: 'scripts/filter_features.R'
+
+#rule select_rna_pca_features:
+#    input: join(output_dir, '{cv}/train/raw/pca_projected/rna.tsv.gz')
+#    output: join(output_dir, '{cv}/train/filtered/pca_projected/rna.tsv.gz')
+#    script: 'scripts/filter_features.R'
+
+#rule select_cnv_pca_features:
+#    input: join(output_dir, '{cv}/train/raw/pca_projected/cnv/pca/{cnv}.tsv.gz')
+#    output: join(output_dir, '{cv}/train/filtered/pca_projected/cnv/pca/{cnv}.tsv.gz')
+#    script: 'scripts/filter_features.R'
+
+#rule select_var_pca_features:
+#    input: join(output_dir, '{cv}/train/raw/pca_projected/var.tsv.gz')
+#    output: join(output_dir, '{cv}/train/filtered/pca_projected/var.tsv.gz')
+#    script: 'scripts/filter_features.R'
+
+rule select_rna_gene_set_features:
+    input: join(output_dir, '{cv}/train/raw/gene_set_projected/rna.tsv.gz')
+    output: join(output_dir, '{cv}/train/filtered/gene_set_projected/rna.tsv.gz')
+    script: 'scripts/filter_features.R'
+
+rule select_cnv_gene_set_features:
+    input: join(output_dir, '{cv}/train/raw/gene_set_projected/cnv.tsv.gz')
+    output: join(output_dir, '{cv}/train/filtered/gene_set_projected/cnv.tsv.gz')
+    script: 'scripts/filter_features.R'
+
+rule select_var_gene_set_features:
+    input: join(output_dir, '{cv}/train/raw/gene_set_projected/var.tsv.gz')
+    output: join(output_dir, '{cv}/train/filtered/gene_set_projected/var.tsv.gz')
+    script: 'scripts/filter_features.R'
 
 #
 # Model training (TODO)

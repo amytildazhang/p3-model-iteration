@@ -105,8 +105,8 @@ feature_filtering:
 # implementation of random forests.
 # 
 feature_selection:
-  method: boruta
-  fallback: rfe
+  method: rfe
+  fallback: none
   min_features: 5
   max_features: 1000
   num_trees: 25000

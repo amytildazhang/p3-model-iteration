@@ -60,13 +60,16 @@ rule all:
     input: expand(join(output_dir, '{cv}/train/training_sets/selected/{drug}.tsv.gz'), cv=cv_indices, drug=drug_names)
 
 #
-# Model training (TODO)
+# Model training
 #
-#rule train_rf_models:
-#    input: join(output_dir, '{cv}/train/training_sets/selected/{drug}.tsv.gz')
-#    output: join(output_dir, '{cv}/train/models/{drug}.tsv.gz')
-#    script: 'scripts/train_random_forest_model.R'
+rule train_models:
+    input: join(output_dir, '{cv}/train/training_sets/selected/{drug}.tsv.gz')
+    output: join(output_dir, '{cv}/train/models/{drug}.rda')
+    script: 'scripts/train_model.R'
 
+#
+# Feature selection
+#
 rule perform_feature_selection:
     input: join(output_dir, '{cv}/train/training_sets/full/{drug}.tsv.gz')
     output: join(output_dir, '{cv}/train/training_sets/selected/{drug}.tsv.gz')

@@ -1,6 +1,6 @@
 #!/bin/env Rscript
 #
-# Train a random forest model using input training set
+# Feature selection
 #
 library(readr)
 source('scripts/feature_selection_methods.R')

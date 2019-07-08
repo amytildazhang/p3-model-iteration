@@ -33,6 +33,13 @@ cross_validation:
   random_seed: 801372
 
 #
+# Model training
+#
+model:
+  method: 'random_forest'
+  num_trees: 25000
+
+#
 # Pathway aggregation
 #
 

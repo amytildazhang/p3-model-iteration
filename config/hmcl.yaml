@@ -8,6 +8,13 @@ version: 0.1
 debug: true
 
 #
+# Resources
+# 
+
+# maximum number of threads to use for each snakemake worker
+max_threads: 4
+
+#
 # Feature input data
 # 
 features:

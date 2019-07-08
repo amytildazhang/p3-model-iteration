@@ -16,7 +16,8 @@ boruta_feature_selection <- function(dat, snakemake) {
   # perform boruta feature selection
   boruta <- Boruta(x = dat[, -RESPONSE_IND], y = dat[, RESPONSE_IND], 
                   num.trees = snakemake@config$feature_selection$num_trees, 
-                  mtry = snakemake@config$feature_selection$mtry, doTrace = 1)
+                  mtry = snakemake@config$feature_selection$mtry, doTrace = 1,
+                  num.threads = snakemake@config$max_threads)
 
   # if development mode is enabled, save model
   if (snakemake@config$debug) {
@@ -67,8 +68,7 @@ rfe_feature_selection <- function(dat, snakemake) {
                         repeats = num_repeats, seeds = seeds, verbose = TRUE)
 
   # register parallel back-end
-  MAX_THREADS <- 16
-  MAX_THREADS <- max(1, min(detectCores() - 4, MAX_THREADS, na.rm = TRUE))
+  MAX_THREADS <- max(1, min(detectCores() - 4, snakemake@config$max_threads, na.rm = TRUE))
 
   # create paralellization handler
   cl <- makeCluster(MAX_THREADS, outfile='')

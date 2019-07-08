@@ -1,12 +1,21 @@
+################################################################################
 #
 # GDSC pipeline configuration
 #
+################################################################################
 name: gdsc
 version: 0.1
 debug: true
 
 #
-# feature input data
+# Resources
+# 
+
+# maximum number of threads to use for each snakemake worker
+max_threads: 4
+
+#
+# Feature input data
 #
 features:
   rna: 'rna/GDSC_rna.tsv.gz'
@@ -14,17 +23,17 @@ features:
   var: 'var/GDSC_var.tsv.gz'
 
 #
-# cross validation
-# 
-# parameters to use for outer repeated cross validation
+# Cross validation
 #
+
+# parameters to use for outer repeated cross validation
 cross_validation:
   num_splits: 5
   num_repeats: 3
   random_seed: 801372
 
 #
-# feature processing
+# Pathway aggregation
 #
 
 # minimum number of genes required for a gene set to be used for projecing
@@ -37,6 +46,10 @@ gene_set_projection:
     cnv: mean
     var: sum
 
+#
+# PCA projection
+#
+
 # minimum amount of total variance to be accounted for in PCA-projected versions
 # of feature data
 pca_projection:
@@ -45,7 +58,24 @@ pca_projection:
   min_variance: 0.95
 
 #
-# feature filtering
+# Feature filtering
+# 
+# As an early step, some basic unsupervised feature filtering can be performed
+# independently on each feature data type (rna, cnv, var).
+#
+# The type of filtering performed include:
+#
+#  1. Minimum variance
+#  2. Maximum correlation
+#
+# For variance-based filtering, a quantile ranging from 0-1 may be specified and all
+# features with variances lower than that quantile will be excluded. For example, if a
+# min_var_quantile values of "0.4" is specified, the bottom 40% of features, in terms of
+# their variances, will be dropped.
+#
+# For correlation-based filtering, a maximum pearson correlation score may be specified
+# and, for each pair of features with a correlation value above the specified cutoff,
+# one of the two features will be removed at random.
 #
 feature_filtering:
   rna:

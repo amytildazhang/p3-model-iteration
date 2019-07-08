@@ -8,6 +8,15 @@ version: 0.1
 debug: true
 
 #
+# Computational resources
+# 
+
+# per-rule thread usage for parellelized rules
+num_threads:
+  feature_selection: 16
+  train_model: 16
+
+#
 # Feature input data
 # 
 features:
@@ -24,6 +33,13 @@ cross_validation:
   num_splits: 5
   num_repeats: 3
   random_seed: 801372
+
+#
+# Model training
+#
+model:
+  method: 'random_forest'
+  num_trees: 25000
 
 #
 # Pathway aggregation
@@ -74,8 +90,8 @@ feature_filtering:
 # implementation of random forests.
 # 
 feature_selection:
-  method: boruta
-  fallback: rfe
+  method: rfe
+  fallback: none
   min_features: 5
   max_features: 1000
   num_trees: 25000

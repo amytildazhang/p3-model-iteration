@@ -50,82 +50,21 @@ rule all:
     input: expand(join(output_dir, '{cv}/train/training_sets/selected/{drug}.tsv.gz'), cv=cv_indices, drug=drug_names)
 
 #
-# train models
+# Model training
 #
-#rule train_rf_models:
-#    input: join(output_dir, '{cv}/train/training_sets/orig/{response}.tsv.gz')
-#    output: join(output_dir, '{cv}/train/models/orig/{response}.tsv.gz')
-#    script: 'scripts/train_random_forest_model.R'
-
-
-#
-# combine feature and response data
-#
-#rule train_rf_models:
-#    input: join(output_dir, '{cv}/train/training_sets/orig/{response}.tsv.gz')
-#    output: join(output_dir, '{cv}/train/models/orig/{response}.tsv.gz')
-#    script: 'scripts/train_random_forest_model.R'
-
+rule train_model:
+    input: join(output_dir, '{cv}/train/training_sets/selected/{drug}.tsv.gz')
+    output: join(output_dir, '{cv}/train/models/{drug}.rda')
+    threads: config['num_threads']['train_model']
+    script: 'scripts/train_model.R'
 
 #
 # Feature selection
 #
-rule select_rna_features:
-    input: join(output_dir, '{cv}/train/raw/orig/rna.tsv.gz')
-    output: join(output_dir, '{cv}/train/filtered/orig/rna.tsv.gz')
-    script: 'scripts/filter_features.R'
-
-rule select_cnv_features:
-    input: join(output_dir, '{cv}/train/raw/orig/cnv.tsv.gz')
-    output: join(output_dir, '{cv}/train/filtered/orig/cnv.tsv.gz')
-    script: 'scripts/filter_features.R'
-
-rule select_var_features:
-    input: join(output_dir, '{cv}/train/raw/orig/var.tsv.gz')
-    output: join(output_dir, '{cv}/train/filtered/orig/var.tsv.gz')
-    script: 'scripts/filter_features.R'
-
-#rule select_rna_pca_features:
-#    input: join(output_dir, '{cv}/train/raw/pca_projected/rna.tsv.gz')
-#    output: join(output_dir, '{cv}/train/filtered/pca_projected/rna.tsv.gz')
-#    script: 'scripts/filter_features.R'
-
-#rule select_cnv_pca_features:
-#    input: join(output_dir, '{cv}/train/raw/pca_projected/cnv/pca/{cnv}.tsv.gz')
-#    output: join(output_dir, '{cv}/train/filtered/pca_projected/cnv/pca/{cnv}.tsv.gz')
-#    script: 'scripts/filter_features.R'
-
-#rule select_var_pca_features:
-#    input: join(output_dir, '{cv}/train/raw/pca_projected/var.tsv.gz')
-#    output: join(output_dir, '{cv}/train/filtered/pca_projected/var.tsv.gz')
-#    script: 'scripts/filter_features.R'
-
-rule select_rna_gene_set_features:
-    input: join(output_dir, '{cv}/train/raw/gene_set_projected/rna.tsv.gz')
-    output: join(output_dir, '{cv}/train/filtered/gene_set_projected/rna.tsv.gz')
-    script: 'scripts/filter_features.R'
-
-rule select_cnv_gene_set_features:
-    input: join(output_dir, '{cv}/train/raw/gene_set_projected/cnv.tsv.gz')
-    output: join(output_dir, '{cv}/train/filtered/gene_set_projected/cnv.tsv.gz')
-    script: 'scripts/filter_features.R'
-
-rule select_var_gene_set_features:
-    input: join(output_dir, '{cv}/train/raw/gene_set_projected/var.tsv.gz')
-    output: join(output_dir, '{cv}/train/filtered/gene_set_projected/var.tsv.gz')
-    script: 'scripts/filter_features.R'
-
-#
-# Model training (TODO)
-#
-#rule train_rf_models:
-#    input: join(output_dir, '{cv}/train/training_sets/selected/{drug}.tsv.gz')
-#    output: join(output_dir, '{cv}/train/models/{drug}.tsv.gz')
-#    script: 'scripts/train_random_forest_model.R'
-
 rule perform_feature_selection:
     input: join(output_dir, '{cv}/train/training_sets/full/{drug}.tsv.gz')
     output: join(output_dir, '{cv}/train/training_sets/selected/{drug}.tsv.gz')
+    threads: config['num_threads']['train_model']
     script:
         'scripts/select_features.R'
 
@@ -136,7 +75,7 @@ rule perform_feature_selection:
 #
 # Create training set
 #
-rule create_training_sets:
+rule create_training_set:
     input:
         rna=join(output_dir, '{cv}/train/features/filtered/rna.tsv.gz'),
         cnv=join(output_dir, '{cv}/train/features/filtered/cnv.tsv.gz'),
@@ -186,10 +125,12 @@ if config['pca_projection']['enabled']:
         input: join(output_dir, '{{cv}}/train/features/{}/rna.tsv.gz'.format(subdir))
         output: join(output_dir, '{cv}/train/features/pca_projected/rna.tsv.gz')
         script: 'scripts/project_pca.R'
+
     rule project_cnv_pca:
         input: join(output_dir, '{{cv}}/train/features/{}/cnv.tsv.gz'.format(subdir))
         output: join(output_dir, '{cv}/train/features/pca_projected/cnv.tsv.gz')
         script: 'scripts/project_pca.R'
+
     rule project_var_pca:
         input: join(output_dir, '{{cv}}/train/features/{}/var.tsv.gz'.format(subdir)) 
         output: join(output_dir, '{cv}/train/features/pca_projected/var.tsv.gz')
@@ -203,10 +144,12 @@ if config['gene_set_projection']['enabled']:
         input: join(output_dir, '{cv}/train/features/raw/rna.tsv.gz')
         output: join(output_dir, '{cv}/train/features/gene_set_projected/rna.tsv.gz')
         script: 'scripts/project_gene_sets.R'
+
     rule project_cnv_gene_sets:
         input: join(output_dir, '{cv}/train/features/raw/cnv.tsv.gz')
         output: join(output_dir, '{cv}/train/features/gene_set_projected/cnv.tsv.gz')
         script: 'scripts/project_gene_sets.R'
+
     rule project_var_gene_sets:
         input: join(output_dir, '{cv}/train/features/raw/var.tsv.gz')
         output: join(output_dir, '{cv}/train/features/gene_set_projected/var.tsv.gz')

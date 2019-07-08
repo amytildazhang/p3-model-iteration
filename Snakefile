@@ -62,9 +62,10 @@ rule all:
 #
 # Model training
 #
-rule train_models:
+rule train_model:
     input: join(output_dir, '{cv}/train/training_sets/selected/{drug}.tsv.gz')
     output: join(output_dir, '{cv}/train/models/{drug}.rda')
+    threads: config['num_threads']['train_model']
     script: 'scripts/train_model.R'
 
 #
@@ -73,6 +74,7 @@ rule train_models:
 rule perform_feature_selection:
     input: join(output_dir, '{cv}/train/training_sets/full/{drug}.tsv.gz')
     output: join(output_dir, '{cv}/train/training_sets/selected/{drug}.tsv.gz')
+    threads: config['num_threads']['train_model']
     script:
         'scripts/select_features.R'
 
@@ -83,7 +85,7 @@ rule perform_feature_selection:
 #
 # Create training set
 #
-rule create_training_sets:
+rule create_training_set:
     input:
         rna=join(output_dir, '{cv}/train/features/filtered/rna.tsv.gz'),
         cnv=join(output_dir, '{cv}/train/features/filtered/cnv.tsv.gz'),
@@ -133,10 +135,12 @@ if config['pca_projection']['enabled']:
         input: join(output_dir, '{{cv}}/train/features/{}/rna.tsv.gz'.format(subdir))
         output: join(output_dir, '{cv}/train/features/pca_projected/rna.tsv.gz')
         script: 'scripts/project_pca.R'
+
     rule project_cnv_pca:
         input: join(output_dir, '{{cv}}/train/features/{}/cnv.tsv.gz'.format(subdir))
         output: join(output_dir, '{cv}/train/features/pca_projected/cnv.tsv.gz')
         script: 'scripts/project_pca.R'
+
     rule project_var_pca:
         input: join(output_dir, '{{cv}}/train/features/{}/var.tsv.gz'.format(subdir)) 
         output: join(output_dir, '{cv}/train/features/pca_projected/var.tsv.gz')
@@ -150,10 +154,12 @@ if config['gene_set_projection']['enabled']:
         input: join(output_dir, '{cv}/train/features/raw/rna.tsv.gz')
         output: join(output_dir, '{cv}/train/features/gene_set_projected/rna.tsv.gz')
         script: 'scripts/project_gene_sets.R'
+
     rule project_cnv_gene_sets:
         input: join(output_dir, '{cv}/train/features/raw/cnv.tsv.gz')
         output: join(output_dir, '{cv}/train/features/gene_set_projected/cnv.tsv.gz')
         script: 'scripts/project_gene_sets.R'
+
     rule project_var_gene_sets:
         input: join(output_dir, '{cv}/train/features/raw/var.tsv.gz')
         output: join(output_dir, '{cv}/train/features/gene_set_projected/var.tsv.gz')

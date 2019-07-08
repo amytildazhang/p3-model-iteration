@@ -8,11 +8,13 @@ version: 0.1
 debug: true
 
 #
-# Resources
+# Computational resources
 # 
 
-# maximum number of threads to use for each snakemake worker
-max_threads: 4
+# per-rule thread usage for parellelized rules
+num_threads:
+  feature_selection: 16
+  train_model: 16
 
 #
 # Feature input data

@@ -40,14 +40,16 @@ if (snakemake@config$model$method == 'random_forest') {
 
   caret_mod <- train(response ~ ., data = dat, method = "ranger", metric = 'Rsquared',
                      trControl = train_control, importance = 'permutation',
-										 num.trees = snakemake@config$model$num_trees)
+										 num.trees = snakemake@config$model$num_trees,
+                     num.threads = snakemake@config$num_threads$train_model)
 
   # next, generate a tidy version of the tuned model using parsnip
 	mod <- rand_forest(mode = "regression", mtry = caret_mod$bestTune$mtry, 
 										 trees = snakemake@config$model$num_trees, 
 									   min_n = caret_mod$bestTune$min.node.size) %>%
 		set_engine("ranger", importance = 'permutation', seed = 1,
-							 splitrule = caret$bestTune$splitrule) %>%
+							 splitrule = caret$bestTune$splitrule,
+               num.threads = snakemake@config$num_threads$train_model) %>%
 		fit(response ~ ., data = dat)
 }
 

@@ -109,7 +109,7 @@ feature_filtering:
 feature_selection:
   method: rfe
   fallback: none
-  min_features: 5
+  min_features: 100
   max_features: 1000
   num_trees: 25000
   mtry: 4

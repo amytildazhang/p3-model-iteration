@@ -43,6 +43,8 @@ message(sprintf("Found %d features during first round of selection using %s...",
                 length(features),
                 snakemake@config$feature_selection$method))
 
+print(features)
+
 # if too few features found, attempt fallback method
 if (length(features) < snakemake@config$feature_selection$min_features) {
   message(sprintf("Insufficient features found using %s! Falling back on %s...",

@@ -3,6 +3,18 @@
 # V. Keith Hughitt, Amy Zhang
 # June 2019
 #
+
+# Pipeline steps:
+#
+# 1. Split data into CV folds
+# 2. Gene set projection [Optional]
+# 3. Early dimension reduction [Optional]
+# 4. Feature filtering (unsupervised)
+# 5. Training set construction
+# 6. Late dimension reduction [Optional]
+# 7. Feature selection (supervised)
+# 8. Model training 
+#
 import glob
 import os
 import pandas as pd
@@ -61,9 +73,16 @@ rule train_model:
 #
 # Feature selection
 #
+if config['dimension_reduction_late']['enabled']:
+    inputs = [join(output_dir, '{cv}/train/training_sets/dimension_reduced/{drug}.tsv.gz',
+              join(output_dir, '{cv}/train/training_sets/dimension_reduced/{drug}_projection_matrix.rda']
+
+else:
+    inputs = [join(output_dir, '{cv}/train/training_sets/full/{drug}.tsv.gz']
+
 rule perform_feature_selection:
-    input: join(output_dir, '{cv}/train/training_sets/full/{drug}.tsv.gz')
-    output: join(output_dir, '{cv}/train/training_sets/selected/{drug}.tsv.gz')
+    input: 
+    output: join(output_dir, '{cv}/train/training_sets/selected/{drug}.tsv.gz'),
     threads: config['num_threads']['train_model']
     script:
         'scripts/select_features.R'
@@ -71,6 +90,17 @@ rule perform_feature_selection:
 #
 # Imputation (TODO / Optional)
 #
+
+#
+# Late dimension reduction (Optional)
+#
+if config['dimension_reduction_late']['enabled']:
+    rule reduce_training_set_dimension:
+        input: join(output_dir, '{cv}/train/training_sets/full/{drug}.tsv.gz')
+        output:
+            join(output_dir, '{cv}/train/training_sets/dimension_reduced/{drug}.tsv.gz'),
+            join(output_dir, '{cv}/train/training_sets/dimension_reduced/{drug}_projection_matrix.rda')
+        script: 'scripts/reduce_dimensions_late.R'
 
 #
 # Create training set
@@ -89,8 +119,8 @@ rule create_training_set:
 #
 # Feature filtering
 #
-if config['pca_projection']['enabled']:
-    subdir = 'pca_projected'
+if config['dimension_reduction_early']['enabled']:
+    subdir = 'dimension_reduced'
 else:
     if config['gene_set_projection']['enabled']:
         subdir = 'gene_set_projected'
@@ -113,28 +143,28 @@ rule filter_var_features:
     script: 'scripts/filter_features.R'
 
 #
-# PCA projection (Optional)
+# Early dimension reduction (Optional)
 #
-if config['pca_projection']['enabled']:
+if config['dimension_reduction_early']['enabled']:
     if config['gene_set_projection']['enabled']:
         subdir = 'gene_set_projected'
     else:
         subdir = 'raw'
 
-    rule project_rna_pca:
+    rule reduce_rna_dimension:
         input: join(output_dir, '{{cv}}/train/features/{}/rna.tsv.gz'.format(subdir))
-        output: join(output_dir, '{cv}/train/features/pca_projected/rna.tsv.gz')
-        script: 'scripts/project_pca.R'
+        output: join(output_dir, '{cv}/train/features/dimension_reduced/rna.tsv.gz')
+        script: 'scripts/reduce_dimensions_early.R'
 
-    rule project_cnv_pca:
+    rule reduce_cnv_dimension:
         input: join(output_dir, '{{cv}}/train/features/{}/cnv.tsv.gz'.format(subdir))
-        output: join(output_dir, '{cv}/train/features/pca_projected/cnv.tsv.gz')
-        script: 'scripts/project_pca.R'
+        output: join(output_dir, '{cv}/train/features/dimension_reduced/cnv.tsv.gz')
+        script: 'scripts/reduce_dimensions_early.R'
 
-    rule project_var_pca:
+    rule reduce_var_dimension:
         input: join(output_dir, '{{cv}}/train/features/{}/var.tsv.gz'.format(subdir)) 
-        output: join(output_dir, '{cv}/train/features/pca_projected/var.tsv.gz')
-        script: 'scripts/project_pca.R'
+        output: join(output_dir, '{cv}/train/features/dimension_reduced/var.tsv.gz')
+        script: 'scripts/reduce_dimensions_early.R'
 
 #
 # Gene set aggregation (Optional)

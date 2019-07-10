@@ -36,9 +36,9 @@ boruta_feature_selection <- function(dat, snakemake) {
 # RFE
 #
 rfe_feature_selection <- function(dat, snakemake) {
-
   library(caret)
   library(doParallel)
+  library(dplyr)
   library(randomForest)
 
   # use the same cross validation settings as the main outer CV loop
@@ -88,5 +88,18 @@ rfe_feature_selection <- function(dat, snakemake) {
   # determine number of features to keep
   num_features <- min(length(rfe_res$optVariables), snakemake@config$feature_selection$max_features)
 
-  head(rfe_res$optVariables, num_features)
+  # if too few variables found, use ranking to retrieve top N vars intead
+  if (num_features < snakemake@config$feature_selection$min_features) {
+    features <- rfe_res$variables %>%
+      group_by(var) %>%
+      summarize(mean_score = mean(Overall)) %>%
+      arrange(desc(mean_score)) %>%
+      head(snakemake@config$feature_selection$min_features) %>%
+      pull(var)
+  } else {
+    # otherwise, return selected features
+    features <- head(rfe_res$optVariables, num_features)
+  }
+
+  features
 }

@@ -4,7 +4,7 @@
 #
 ################################################################################
 name: gdsc
-version: 0.1
+version: 0.2
 debug: true
 
 #
@@ -56,15 +56,20 @@ gene_set_projection:
     var: sum
 
 #
-# PCA projection
+# Dimension reduction (individual datasets)
 #
-
-# minimum amount of total variance to be accounted for in PCA-projected versions
-# of feature data
-pca_projection:
+dimension_reduction_early:
   enabled: false
+  method: pca
   scale: true
   min_variance: 0.95
+
+#
+# Dimension reduction (combined dataset)
+#
+dimension_reduction_late:
+  enabled: false
+  method: pls
 
 #
 # Feature filtering

@@ -73,13 +73,15 @@ rule train_model:
 # Feature selection
 #
 if config['dimension_reduction_late']['enabled']:
-    subdir = 'dimension_reduced'
+    inputs = [join(output_dir, '{cv}/train/training_sets/dimension_reduced/{drug}.tsv.gz',
+              join(output_dir, '{cv}/train/training_sets/dimension_reduced/{drug}_projection_matrix.rda']
+
 else:
-    subdir = 'full'
+    inputs = [join(output_dir, '{cv}/train/training_sets/full/{drug}.tsv.gz']
 
 rule perform_feature_selection:
-    input: join(output_dir, '{{cv}}/train/training_sets/{}/{{drug}}.tsv.gz'.format(subdir))
-    output: join(output_dir, '{cv}/train/training_sets/selected/{drug}.tsv.gz')
+    input: 
+    output: join(output_dir, '{cv}/train/training_sets/selected/{drug}.tsv.gz'),
     threads: config['num_threads']['train_model']
     script:
         'scripts/select_features.R'
@@ -94,7 +96,9 @@ rule perform_feature_selection:
 if config['dimension_reduction_late']['enabled']:
     rule reduce_training_set_dimension:
         input: join(output_dir, '{cv}/train/training_sets/full/{drug}.tsv.gz')
-        output: join(output_dir, '{cv}/train/training_sets/dimension_reduced/{drug}.tsv.gz')
+        output:
+            join(output_dir, '{cv}/train/training_sets/dimension_reduced/{drug}.tsv.gz'),
+            join(output_dir, '{cv}/train/training_sets/dimension_reduced/{drug}_projection_matrix.rda')
         script: 'scripts/reduce_dimensions_late.R'
 
 #

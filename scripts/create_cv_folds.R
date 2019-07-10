@@ -6,7 +6,7 @@ suppressMessages(library(tidyverse))
 options(stringsAsFactors = FALSE)
 
 # get cv fold indices
-cv_fold <- snakemake@params$cv_folds[[snakemake@wildcards$cv]]
+cv_fold <- snakemake@params$cv_folds[[snakemake@wildcards$drug]][[snakemake@wildcards$cv]]
 
 #
 # $train

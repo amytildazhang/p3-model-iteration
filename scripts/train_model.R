@@ -51,10 +51,34 @@ if (snakemake@config$model$method == 'random_forest') {
 							 splitrule = caret$bestTune$splitrule,
                num.threads = snakemake@config$num_threads$train_model) %>%
 		fit(response ~ ., data = dat)
-}
+} else if (snakemake@config$model$method == 'linear') {
+    library(rstanarm)
+    options(mc.cores = parallel::detectCores())
+    mod <- stan_glm(response ~ ., dat, family = gaussian(),
+         prior = student_t(3, scale = 10),
+         prior_aux = cauchy(0, 10),
+         prior_intercept = student_t(3, scale = 10),
+         chains = snakemake@config$num_threads$train_model, cores =  snakemake@config$num_threads$train_model)
+
+
+} else if (snakemake@config$model$method == 'linear_bimodal') {
+    library(rstan)
+    options(mc.cores = parallel::detectCores())
+    rstan_options(auto_write=T)
+    stdat <- list(n = nrow(latent_feats),
+                          y = as.vector(dat$response),
+                          X = cbind(1, latent_feats),
+                          p = ncol(latent_feats) + 1)
+    mod <- stan("scripts/bimixture_pointresp.stan",
+                    data = stdat, chains = 3,
+                    pars = c("B", "mu", "sigma"),
+                    control = list(adapt_delta = 0.95,
+                                   max_treedepth = 20))
+
+  }
 
 # store result
-write_tsv(mod, snakemake@output[[1]])
+save(mod, snakemake@output[[1]])
 
 sessionInfo()
 

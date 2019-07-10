@@ -61,6 +61,25 @@ cv_indices = [f'{x:02}' for x in list(range(1, num_folds + 1))]
 rule all:
     input: expand(join(output_dir, '{cv}/train/training_sets/selected/{drug}.tsv.gz'), cv=cv_indices, drug=drug_names)
 
+
+#
+# Model testing
+#
+if config['dimension_reduction_late']['enabled']:
+    projmat = join(output_dir, '{cv}/train/training_sets/dimension_reduced/{drug}_projection_matrix.rda')
+else:
+    projmat = ''
+
+rule test_model:
+    input: 
+        rna=join(output_dir, '{cv}/test/features/raw/rna.tsv.gz'),
+        cnv=join(output_dir, '{cv}/test/features/raw/cnv.tsv.gz'),
+        var=join(output_dir, '{cv}/test/features/raw/var.tsv.gz'),
+        model=join(output_dir, '{cv}/train/models/{drug}.rda'),
+        projection=projmat    
+    output: join(output_dir, '{cv}/test/models/{drug}.tsv.gz')
+    script: 'scripts/test_model.R'
+
 #
 # Model training
 #
@@ -74,14 +93,14 @@ rule train_model:
 # Feature selection
 #
 if config['dimension_reduction_late']['enabled']:
-    inputs = [join(output_dir, '{cv}/train/training_sets/dimension_reduced/{drug}.tsv.gz',
-              join(output_dir, '{cv}/train/training_sets/dimension_reduced/{drug}_projection_matrix.rda']
+    inputs = [join(output_dir, '{cv}/train/training_sets/dimension_reduced/{drug}.tsv.gz'),
+              join(output_dir, '{cv}/train/training_sets/dimension_reduced/{drug}_projection_matrix.rda')]
 
 else:
-    inputs = [join(output_dir, '{cv}/train/training_sets/full/{drug}.tsv.gz']
+    inputs = [join(output_dir, '{cv}/train/training_sets/full/{drug}.tsv.gz')]
 
 rule perform_feature_selection:
-    input: 
+    input: inputs
     output: join(output_dir, '{cv}/train/training_sets/selected/{drug}.tsv.gz'),
     threads: config['num_threads']['train_model']
     script:

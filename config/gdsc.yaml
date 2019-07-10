@@ -4,7 +4,7 @@
 #
 ################################################################################
 name: gdsc
-version: 0.2
+version: 0.1
 debug: true
 
 #
@@ -30,15 +30,15 @@ features:
 
 # parameters to use for outer repeated cross validation
 cross_validation:
-  num_splits: 5
-  num_repeats: 3
+  num_splits: 3
+  num_repeats: 1
   random_seed: 801372
 
 #
 # Model training
 #
 model:
-  method: 'random_forest'
+  method: 'linear'
   num_trees: 25000
 
 #
@@ -48,7 +48,7 @@ model:
 # minimum number of genes required for a gene set to be used for projecing
 # feature data
 gene_set_projection:
-  enabled: true
+  enabled: false
   gene_set_min_size: 5
   aggregation_funcs:
     rna: median
@@ -68,8 +68,8 @@ dimension_reduction_early:
 # Dimension reduction (combined dataset)
 #
 dimension_reduction_late:
-  enabled: false
-  method: pls
+  enabled: true
+  method: sparse_pls
 
 #
 # Feature filtering
@@ -102,7 +102,6 @@ feature_filtering:
     min_var_quantile: 0
     max_cor: 1
 
-=======
 #
 # Feature selection
 # 
@@ -113,7 +112,7 @@ feature_filtering:
 # implementation of random forests.
 # 
 feature_selection:
-  method: rfe
+  method: none
   fallback: none
   min_features: 100
   max_features: 1000

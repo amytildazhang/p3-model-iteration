@@ -16,7 +16,7 @@ data_type <- strsplit(snakemake@rule, '_')[[1]][[2]]
 # remove low variance features from dataset
 var_quantile <- snakemake@config$feature_filtering[[data_type]][['min_var_quantile']]
 
-if (var_quantile > 0) {
+if (var_quantile > 0 && nrow(dat) > 1) {
   row_vars <- apply(dat[, -1], 1, var, na.rm = TRUE)
   var_cutoff <- quantile(row_vars, var_quantile)
   dat <- dat[row_vars >= var_cutoff, ]
@@ -25,7 +25,7 @@ if (var_quantile > 0) {
 # remove correlated features from dataset
 max_cor <- snakemake@config$feature_filtering[[data_type]][['max_cor']]
 
-if (max_cor < 1) {
+if (max_cor < 1 && nrow(dat) > 1) {
   cor_mat <- coop::pcor(t(dat[, -1]), use = 'pairwise.complete')
 
   ind <- findCorrelation(cor_mat, max_cor)

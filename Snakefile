@@ -106,13 +106,13 @@ for response_file in response_files:
 #
 #
 rule all:
-    input: expand(join(output_dir, '{drug}/{cv}/train/training_sets/selected/response.gz'), cv=cv_indices, drug=drug_names)
+    input: expand(join(output_dir, '{drug}/{cv}/train/training_sets/selected/response.tsv.gz'), cv=cv_indices, drug=drug_names)
 
 #
 # Model training
 #
 rule train_model:
-    input: join(output_dir, '{drug}/{cv}/train/training_sets/selected/response.gz')
+    input: join(output_dir, '{drug}/{cv}/train/training_sets/selected/response.tsv.gz')
     output: join(output_dir, '{drug}/{cv}/train/models/{drug}.rda')
     threads: config['num_threads']['train_model']
     script: 'scripts/train_model.R'
@@ -121,14 +121,14 @@ rule train_model:
 # Feature selection
 #
 if config['dimension_reduction_late']['enabled']:
-    inputs = [join(output_dir, '{drug}/{cv}/train/training_sets/dimension_reduced/response.gz'),
+    inputs = [join(output_dir, '{drug}/{cv}/train/training_sets/dimension_reduced/response.tsv.gz'),
               join(output_dir, '{drug}/{cv}/train/training_sets/dimension_reduced/projection_matrix.rda')]
 else:
-    inputs = [join(output_dir, '{drug}/{cv}/train/training_sets/full/response.gz')]
+    inputs = [join(output_dir, '{drug}/{cv}/train/training_sets/full/response.tsv.gz')]
 
 rule perform_feature_selection:
     input: inputs
-    output: join(output_dir, '{drug}/{cv}/train/training_sets/selected/response.gz'),
+    output: join(output_dir, '{drug}/{cv}/train/training_sets/selected/response.tsv.gz'),
     threads: config['num_threads']['train_model']
     script:
         'scripts/select_features.R'
@@ -142,9 +142,9 @@ rule perform_feature_selection:
 #
 if config['dimension_reduction_late']['enabled']:
     rule reduce_training_set_dimension:
-        input: join(output_dir, '{drug}/{cv}/train/training_sets/full/response.gz')
+        input: join(output_dir, '{drug}/{cv}/train/training_sets/full/response.tsv.gz')
         output:
-            join(output_dir, '{drug}/{cv}/train/training_sets/dimension_reduced/response.gz'),
+            join(output_dir, '{drug}/{cv}/train/training_sets/dimension_reduced/response.tsv.gz'),
             join(output_dir, '{drug}/{cv}/train/training_sets/dimension_reduced/projection_matrix.rda')
         script: 'scripts/reduce_dimensions_late.R'
 
@@ -156,9 +156,9 @@ rule create_training_set:
         rna=join(output_dir, '{drug}/{cv}/train/features/filtered/rna.tsv.gz'),
         cnv=join(output_dir, '{drug}/{cv}/train/features/filtered/cnv.tsv.gz'),
         var=join(output_dir, '{drug}/{cv}/train/features/filtered/var.tsv.gz'),
-        response=join(output_dir, '{drug}/{cv}/train/response/response.gz')
+        response=join(output_dir, '{drug}/{cv}/train/response/response.tsv.gz')
     output:
-        join(output_dir, '{drug}/{cv}/train/training_sets/full/response.gz')
+        join(output_dir, '{drug}/{cv}/train/training_sets/full/response.tsv.gz')
     script:
         'scripts/create_training_set.R'
 
@@ -264,8 +264,8 @@ rule create_var_cv_folds:
 rule create_response_folds:
     input: join(input_dir, 'response/{drug}.tsv.gz')
     output:
-        join(output_dir, '{drug}/{cv}/train/response/response.gz'),
-        join(output_dir, '{drug}/{cv}/test/response/response.gz')
+        join(output_dir, '{drug}/{cv}/train/response/response.tsv.gz'),
+        join(output_dir, '{drug}/{cv}/test/response/response.tsv.gz')
     params:
         cv_folds=cv_folds
     script: 'scripts/create_cv_folds.R'

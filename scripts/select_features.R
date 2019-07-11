@@ -25,6 +25,14 @@ dat <- dat[mask, ]
 # drop any features with missing values
 dat <- dat[, complete.cases(t(dat))]
 
+# if the number of features in input dataset is already less than or equal to the
+# minimum desired number of features, simply create a copy of the data and exit
+if (nrow(dat) <= snakemake@config$feature_selection$min_features) {
+  message("Number of features remaining is already at or below desired number; skipping feature selection...")
+  write_tsv(dat, snakemake@output[[1]])
+  quit(save = 'no')
+}
+
 # perform feature selection (first attempt)
 if (snakemake@config$feature_selection$method == 'boruta') {
   features <- boruta_feature_selection(dat, snakemake) 
@@ -56,7 +64,7 @@ if (length(features) < snakemake@config$feature_selection$min_features) {
   } else if (snakemake@config$feature_selection$fallback == 'rfe') {
     # fallback: rfe
     features <- rfe_feature_selection(dat, snakemake) 
-  } else if (snakemake@config$feature_selection$method == 'none') {
+  } else if (snakemake@config$feature_selection$fallback == 'none') {
     # if the feature selection method is set to "none", we can stop here and
     # simply return the full dataset
     write_tsv(dat, snakemake@output[[1]])

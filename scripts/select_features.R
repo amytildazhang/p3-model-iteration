@@ -28,7 +28,7 @@ dat <- dat[, complete.cases(t(dat))]
 # if the number of features in input dataset is already less than or equal to the
 # minimum desired number of features, simply create a copy of the data and exit
 if (nrow(dat) <= snakemake@config$feature_selection$min_features) {
-  stop("Number of features remaining is already at or below desired number; skipping feature selection...")
+  message("Number of features remaining is already at or below desired number; skipping feature selection...")
   write_tsv(dat, snakemake@output[[1]])
   quit(save = 'no')
 }

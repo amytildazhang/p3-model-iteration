@@ -13,7 +13,7 @@ dat <- read_tsv(snakemake@input[[1]], col_types = cols())
 # drop sample ids and convert to a data frame
 dat <- as.data.frame(dat)
 sample_ids <- dat[, 1]
-dat <- dat[, -1]
+#dat <- dat[, -1]
 
 # drop samples with missing response values
 dat <- dat[!is.na(dat$response), ]
@@ -33,11 +33,15 @@ if (nrow(dat) <= snakemake@config$feature_selection$min_features) {
   quit(save = 'no')
 }
 
+# separate out CV indicator
+CV_ind <- dat[,1]
+train_idx <- CV_ind == 1
+
 # perform feature selection (first attempt)
 if (snakemake@config$feature_selection$method == 'boruta') {
-  features <- boruta_feature_selection(dat, snakemake) 
+  features <- boruta_feature_selection(dat[train_idx,-c(1,2)], snakemake) 
 } else if (snakemake@config$feature_selection$method == 'rfe') {
-  features <- rfe_feature_selection(dat, snakemake) 
+  features <- rfe_feature_selection(dat[train_idx,-c(1,2)], snakemake) 
 } else if (snakemake@config$feature_selection$method == 'none') {
   # if the feature selection method is set to "none", we can stop here and
   # simply return the full dataset
@@ -60,10 +64,10 @@ if (length(features) < snakemake@config$feature_selection$min_features) {
                   snakemake@config$feature_selection$fallback))
   # fallback: boruta
   if (snakemake@config$feature_selection$fallback == 'boruta') {
-    features <- boruta_feature_selection(dat, snakemake) 
+    features <- boruta_feature_selection(dat[train_idx, -c(1,2)], snakemake) 
   } else if (snakemake@config$feature_selection$fallback == 'rfe') {
     # fallback: rfe
-    features <- rfe_feature_selection(dat, snakemake) 
+    features <- rfe_feature_selection(dat[train_idx, -c(1,2)], snakemake) 
   } else if (snakemake@config$feature_selection$fallback == 'none') {
     # if the feature selection method is set to "none", we can stop here and
     # simply return the full dataset
@@ -79,7 +83,7 @@ if (length(features) < snakemake@config$feature_selection$min_features) {
 }
 
 # remove unselected features
-dat <- dat[, colnames(dat) %in% c('symbol', features, 'response')]
+dat <- dat[, colnames(dat) %in% c('symbol', 'train_idx', features, 'response')]
 
 # store result
 write_tsv(dat, snakemake@output[[1]])

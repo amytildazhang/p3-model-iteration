@@ -103,7 +103,6 @@ feature_filtering:
     min_var_quantile: 0
     max_cor: 1
 
-=======
 #
 # Feature selection
 # 

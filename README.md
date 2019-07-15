@@ -15,12 +15,6 @@ conda activate p3-models
 This will create a new conda environment containing all of the dependencies needed by
 the pipline.
 
-Installing the remaining non-conda dependencies:
-
-```
-R -e 'BiocManager::install("stephenturner/annotables")'
-```
-
 Next, edit the configuration file (`config.yml`) to indicate the desired settings and
 locations of expected input files.
 

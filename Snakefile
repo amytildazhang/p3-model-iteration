@@ -108,12 +108,20 @@ wildcard_constraints:
     drug = "[^\/]+" 
 
 
+# specify which rules are run locally
+localrules: all, create_training_set, 
+    create_rna_cv_folds, 
+    create_cnv_cv_folds,
+    create_var_cv_folds,
+    create_response_folds
+
+
 #
 # Rules
 #
 #
 rule all:
-    input: expand(join(output_dir, '{drug}/{cv}/models/{drug}.tsv.gz'), cv=cv_indices, drug=drug_names)
+    input: expand(join(output_dir, '{{drug}}/{{cv}}/models/{}.tsv.gz'.format(config['model']['method'])), cv=cv_indices, drug=drug_names)
 
 #
 # Model training

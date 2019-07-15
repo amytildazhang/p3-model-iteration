@@ -20,18 +20,24 @@ cv_fold <- snakemake@params$cv_folds[[snakemake@wildcards$drug]][[snakemake@wild
 # load feature data
 dat <- read_tsv(snakemake@input[[1]], col_types = cols())
 
-# create test and train folds;
-
 # first column contains identifiers
 ID_COL_OFFSET <- 1
 
 # python -> r indexing offset
 R_INDEX_OFFSET <- 1
 
-train <- dat[, c(1, cv_fold$train + ID_COL_OFFSET + R_INDEX_OFFSET)]
-test <- dat[, c(1, cv_fold$test + ID_COL_OFFSET + R_INDEX_OFFSET)]
+
+# create indicator variable for test and train folds;
+train_ind <- as.numeric(2:ncol(dat) %in% (cv_fold$train + ID_COL_OFFSET + R_INDEX_OFFSET))
+
+# change ID column to include name for indicator var
+feat_names <- c("train_idx", pull(dat,1 ))
+
+# save indicator var as first row of data frame
+dat_cv <- cbind(symbol = feat_names, as.data.frame(rbind(train_ind, as.matrix(dat[,-1]))))
+colnames(dat_cv) <- colnames(dat)
+
 
 # store result
-write_tsv(train, snakemake@output[[1]])
-write_tsv(test, snakemake@output[[2]])
+write_tsv(dat_cv, snakemake@output[[1]])
 

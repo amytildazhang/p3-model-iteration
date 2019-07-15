@@ -3,6 +3,7 @@
 # V. Keith Hughitt, Amy Zhang
 # June 2019
 #
+
 # Pipeline steps:
 #
 # 1. Split data into CV folds
@@ -29,7 +30,7 @@ if config['debug']:
 
 # base data directory
 input_dir = join('data', config['name'])
-output_dir = join('output', config['name'], str(config['version']))
+output_dir = join(config['output'], 'output', config['name'], str(config['version']))
 
 # load sample metadata
 samples = pd.read_csv(join(input_dir, 'metadata', 'samples.tsv'), sep='\t')
@@ -100,66 +101,77 @@ for response_file in response_files:
 
     cv_folds[response_file.replace('.tsv.gz', '')] = drug_folds
 
+
+# specify format of wildcards to prevent ambiguous file names
+wildcard_constraints:
+    cv = "\d+",
+    drug = "[^\/]+" 
+
+
+# specify which rules are run locally
+localrules: all, create_training_set, 
+    create_rna_cv_folds, 
+    create_cnv_cv_folds,
+    create_var_cv_folds,
+    create_response_folds
+
+
 #
 # Rules
 #
 #
 rule all:
-    input: expand(join(output_dir, '{drug}/{cv}/train/training_sets/selected/response.tsv.gz'), cv=cv_indices, drug=drug_names)
+    input: expand(join(output_dir, '{{drug}}/{{cv}}/models/{}.tsv.gz'.format(config['model']['method'])), cv=cv_indices, drug=drug_names)
 
 #
 # Model training
 #
-rule train_model:
-    input: join(output_dir, '{drug}/{cv}/train/training_sets/selected/response.tsv.gz')
-    output: join(output_dir, '{drug}/{cv}/train/models/{drug}.rda')
-    threads: config['num_threads']['train_model']
-    script: 'scripts/train_model.R'
-
-#
-# Feature selection
-#
 if config['dimension_reduction_late']['enabled']:
-    inputs = [join(output_dir, '{drug}/{cv}/train/training_sets/dimension_reduced/response.tsv.gz'),
-              join(output_dir, '{drug}/{cv}/train/training_sets/dimension_reduced/projection_matrix.rda')]
+    subdir = 'dimension_reduced'
 else:
-    inputs = [join(output_dir, '{drug}/{cv}/train/training_sets/full/response.tsv.gz')]
+    subdir = 'selected'
 
-rule perform_feature_selection:
-    input: inputs
-    output: join(output_dir, '{drug}/{cv}/train/training_sets/selected/response.tsv.gz'),
+rule evaluate_model:
+    input: join(output_dir, '{{drug}}/{{cv}}/training_sets/{}/response.tsv.gz'.format(subdir))
+    output: join(output_dir, '{{drug}}/{{cv}}/models/{}.tsv.gz'.format(config['model']['method']))
     threads: config['num_threads']['train_model']
-    script:
-        'scripts/select_features.R'
+    script: 'scripts/eval_model.R'
 
-#
-# Imputation (TODO / Optional)
-#
 
 #
 # Late dimension reduction (Optional)
 #
 if config['dimension_reduction_late']['enabled']:
     rule reduce_training_set_dimension:
-        input: join(output_dir, '{drug}/{cv}/train/training_sets/full/response.tsv.gz')
-        output:
-            join(output_dir, '{drug}/{cv}/train/training_sets/dimension_reduced/response.tsv.gz'),
-            join(output_dir, '{drug}/{cv}/train/training_sets/dimension_reduced/projection_matrix.rda')
+        input: join(output_dir, '{drug}/{cv}/training_sets/selected/response.tsv.gz')
+        output: join(output_dir, '{drug}/{cv}/training_sets/dimension_reduced/response.tsv.gz'),
         script: 'scripts/reduce_dimensions_late.R'
+
+#
+# Feature selection
+#
+rule perform_feature_selection:
+    input: join(output_dir, '{drug}/{cv}/training_sets/full/response.tsv.gz')
+    output: join(output_dir, '{drug}/{cv}/training_sets/selected/response.tsv.gz'),
+    threads: config['num_threads']['train_model']
+    script:
+        'scripts/select_features.R'
+ 
 
 #
 # Create training set
 #
 rule create_training_set:
     input:
-        rna=join(output_dir, '{drug}/{cv}/train/features/filtered/rna.tsv.gz'),
-        cnv=join(output_dir, '{drug}/{cv}/train/features/filtered/cnv.tsv.gz'),
-        var=join(output_dir, '{drug}/{cv}/train/features/filtered/var.tsv.gz'),
-        response=join(output_dir, '{drug}/{cv}/train/response/response.tsv.gz')
+        rna=join(output_dir, '{drug}/{cv}/features/filtered/rna.tsv.gz'),
+        cnv=join(output_dir, '{drug}/{cv}/features/filtered/cnv.tsv.gz'),
+        var=join(output_dir, '{drug}/{cv}/features/filtered/var.tsv.gz'),
+        response=join(output_dir, '{drug}/{cv}/response/response.tsv.gz')
     output:
-        join(output_dir, '{drug}/{cv}/train/training_sets/full/response.tsv.gz')
+        join(output_dir, '{drug}/{cv}/training_sets/full/response.tsv.gz')
     script:
         'scripts/create_training_set.R'
+
 
 #
 # Feature filtering
@@ -173,18 +185,18 @@ else:
         subdir = 'raw'
 
 rule filter_rna_features:
-    input: join(output_dir, '{{drug}}/{{cv}}/train/features/{}/rna.tsv.gz'.format(subdir))
-    output: join(output_dir, '{drug}/{cv}/train/features/filtered/rna.tsv.gz')
+    input: join(output_dir, '{{drug}}/{{cv}}/features/{}/rna.tsv.gz'.format(subdir))
+    output: join(output_dir, '{drug}/{cv}/features/filtered/rna.tsv.gz')
     script: 'scripts/filter_features.R'
 
 rule filter_cnv_features:
-    input: join(output_dir, '{{drug}}/{{cv}}/train/features/{}/cnv.tsv.gz'.format(subdir))
-    output: join(output_dir, '{drug}/{cv}/train/features/filtered/cnv.tsv.gz')
+    input: join(output_dir, '{{drug}}/{{cv}}/features/{}/cnv.tsv.gz'.format(subdir))
+    output: join(output_dir, '{drug}/{cv}/features/filtered/cnv.tsv.gz')
     script: 'scripts/filter_features.R'
 
 rule filter_var_features:
-    input: join(output_dir, '{{drug}}/{{cv}}/train/features/{}/var.tsv.gz'.format(subdir)) 
-    output: join(output_dir, '{drug}/{cv}/train/features/filtered/var.tsv.gz')
+    input: join(output_dir, '{{drug}}/{{cv}}/features/{}/var.tsv.gz'.format(subdir)) 
+    output: join(output_dir, '{drug}/{cv}/features/filtered/var.tsv.gz')
     script: 'scripts/filter_features.R'
 
 #
@@ -197,75 +209,78 @@ if config['dimension_reduction_early']['enabled']:
         subdir = 'raw'
 
     rule reduce_rna_dimension:
-        input: join(output_dir, '{{drug}}/{{cv}}/train/features/{}/rna.tsv.gz'.format(subdir))
-        output: join(output_dir, '{drug}/{cv}/train/features/dimension_reduced/rna.tsv.gz')
+        input: join(output_dir, '{{drug}}/{{cv}}/features/{}/rna.tsv.gz'.format(subdir))
+        output: join(output_dir, '{drug}/{cv}/features/dimension_reduced/rna.tsv.gz')
         script: 'scripts/reduce_dimensions_early.R'
 
     rule reduce_cnv_dimension:
-        input: join(output_dir, '{{drug}}/{{cv}}/train/features/{}/cnv.tsv.gz'.format(subdir))
-        output: join(output_dir, '{drug}/{cv}/train/features/dimension_reduced/cnv.tsv.gz')
+        input: join(output_dir, '{{drug}}/{{cv}}/features/{}/cnv.tsv.gz'.format(subdir))
+        output: join(output_dir, '{drug}/{cv}/features/dimension_reduced/cnv.tsv.gz')
         script: 'scripts/reduce_dimensions_early.R'
 
     rule reduce_var_dimension:
-        input: join(output_dir, '{{drug}}/{{cv}}/train/features/{}/var.tsv.gz'.format(subdir)) 
-        output: join(output_dir, '{drug}/{cv}/train/features/dimension_reduced/var.tsv.gz')
+        input: join(output_dir, '{{drug}}/{{cv}}/features/{}/var.tsv.gz'.format(subdir)) 
+        output: join(output_dir, '{drug}/{cv}/features/dimension_reduced/var.tsv.gz')
         script: 'scripts/reduce_dimensions_early.R'
-
-#
-# Gene set aggregation (Optional)
-#
-if config['gene_set_projection']['enabled']:
-    rule project_rna_gene_sets:
-        input: join(output_dir, '{drug}/{cv}/train/features/raw/rna.tsv.gz')
-        output: join(output_dir, '{drug}/{cv}/train/features/gene_set_projected/rna.tsv.gz')
-        script: 'scripts/project_gene_sets.R'
-
-    rule project_cnv_gene_sets:
-        input: join(output_dir, '{drug}/{cv}/train/features/raw/cnv.tsv.gz')
-        output: join(output_dir, '{drug}/{cv}/train/features/gene_set_projected/cnv.tsv.gz')
-        script: 'scripts/project_gene_sets.R'
-
-    rule project_var_gene_sets:
-        input: join(output_dir, '{drug}/{cv}/train/features/raw/var.tsv.gz')
-        output: join(output_dir, '{drug}/{cv}/train/features/gene_set_projected/var.tsv.gz')
-        script: 'scripts/project_gene_sets.R'
 
 #
 # Create cross validation splits
 #
+dtypes = ['rna', 'cnv', 'var']
+if config['gene_set_projection']['enabled']:
+    files = [join(output_dir, '{{drug}}/features/gene_set_projected/{}.tsv.gz').format(dt) for dt in dtypes]
+    subdir = 'gene_set_projected'
+else:
+    files = [join(input_dir, config['features'][dt]) for dt in dtypes]
+    subdir = 'raw'
+filed = dict(zip(dtypes, files))
+
 rule create_rna_cv_folds:
-    input: join(input_dir, config['features']['rna'])
-    output:
-        join(output_dir, '{drug}/{cv}/train/features/raw/rna.tsv.gz'),
-        join(output_dir, '{drug}/{cv}/test/features/raw/rna.tsv.gz'),
+    input: filed['rna']
+    output: join(output_dir, '{{drug}}/{{cv}}/features/{}/rna.tsv.gz'.format(subdir))
     params:
         cv_folds=cv_folds
     script: 'scripts/create_cv_folds.R'
 
 rule create_cnv_cv_folds:
-    input: join(input_dir, config['features']['cnv'])
-    output:
-        join(output_dir, '{drug}/{cv}/train/features/raw/cnv.tsv.gz'),
-        join(output_dir, '{drug}/{cv}/test/features/raw/cnv.tsv.gz'),
+    input: filed['cnv']
+    output: join(output_dir, '{{drug}}/{{cv}}/features/{}/cnv.tsv.gz'.format(subdir))
     params:
         cv_folds=cv_folds
     script: 'scripts/create_cv_folds.R'
 
 rule create_var_cv_folds:
-    input: join(input_dir, config['features']['var'])
-    output:
-        join(output_dir, '{drug}/{cv}/train/features/raw/var.tsv.gz'),
-        join(output_dir, '{drug}/{cv}/test/features/raw/var.tsv.gz')
+    input: filed['var']
+    output: join(output_dir, '{{drug}}/{{cv}}/features/{}/var.tsv.gz'.format(subdir))
     params:
         cv_folds=cv_folds
     script: 'scripts/create_cv_folds.R'
 
 rule create_response_folds:
     input: join(input_dir, 'response/{drug}.tsv.gz')
-    output:
-        join(output_dir, '{drug}/{cv}/train/response/response.tsv.gz'),
-        join(output_dir, '{drug}/{cv}/test/response/response.tsv.gz')
+    output: join(output_dir, '{drug}/{cv}/response/response.tsv.gz')
     params:
         cv_folds=cv_folds
     script: 'scripts/create_cv_folds.R'
+
+
+#
+# Gene set aggregation (optional)
+#
+if config['gene_set_projection']['enabled']:
+    rule project_rna_gene_sets:
+        input: join(input_dir, config['features']['rna'])
+        output: join(output_dir, '{drug}/features/gene_set_projected/rna.tsv.gz')
+        script: 'scripts/project_gene_sets.R'
+
+    rule project_cnv_gene_sets:
+        input: join(input_dir, config['features']['cnv'])
+        output: join(output_dir, '{drug}/features/gene_set_projected/cnv.tsv.gz')
+        script: 'scripts/project_gene_sets.R'
+
+    rule project_var_gene_sets:
+        input: join(input_dir, config['features']['var'])
+        output: join(output_dir, '{drug}/features/gene_set_projected/var.tsv.gz')
+        script: 'scripts/project_gene_sets.R'
+
 

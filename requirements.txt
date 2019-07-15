@@ -21,7 +21,7 @@ r-remotes
 r-latex2exp
 r-tidyverse
 r-tidymodels
-r-pls
+r-spls
 r-rstan
 r-rstanarm
 r-rstantools

@@ -6,6 +6,8 @@
 name: hmcl
 version: 0.2
 debug: true
+output: '/data/zhangamx/p3-model-iteration/'   # larger directory for output storage
+
 
 #
 # Computational resources
@@ -30,8 +32,8 @@ features:
 
 # parameters to use for outer repeated cross validation
 cross_validation:
-  num_splits: 5
-  num_repeats: 3
+  num_splits: 8
+  num_repeats: 2
   min_group_size: 5
   random_seed: 801372
 
@@ -39,7 +41,7 @@ cross_validation:
 # Model training
 #
 model:
-  method: 'random_forest'
+  method: 'linear'
   num_trees: 25000
 
 #
@@ -49,7 +51,7 @@ model:
 # minimum number of genes required for a gene set to be used for projecing
 # feature data
 gene_set_projection:
-  enabled: true
+  enabled: true 
   gene_set_min_size: 5
   aggregation_funcs:
     rna: median
@@ -60,17 +62,18 @@ gene_set_projection:
 # Dimension reduction (individual datasets)
 #
 dimension_reduction_early:
-  enabled: true
+  enabled: false
   method: pca
   scale: true
   min_variance: 0.95
 
 #
+
 # Dimension reduction (combined dataset)
 #
 dimension_reduction_late:
-  enabled: false
-  method: pls
+  enabled: true
+  method: 'sparse_pls'
 
 #
 # Feature filtering
@@ -113,7 +116,7 @@ feature_filtering:
 # implementation of random forests.
 # 
 feature_selection:
-  method: rfe
+  method: none
   fallback: none
   min_features: 100
   max_features: 1000

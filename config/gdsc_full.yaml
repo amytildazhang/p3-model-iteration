@@ -16,13 +16,15 @@ output: '/data/zhangamx/p3-model-iteration/'   # larger directory for output sto
 model_combinations:
   data_transforms:
     - gene_set_projected
+    - raw
   models:
     - linear
     - bimixture
+    - horseshoe
   dim_reducts:
-    - sparse_pls
+    - mofa
   feat_select:
-    - none
+    - distance
 
 #
 # Computational resources
@@ -30,9 +32,9 @@ model_combinations:
 
 # per-rule thread usage for parellelized rules
 num_threads:
-  feature_selection: 8
+  feature_selection: 1
   train_model: 4
-  filter_features: 8
+  filter_features: 12
 #
 # Feature input data
 #
@@ -47,17 +49,11 @@ features:
 
 # parameters to use for outer repeated cross validation
 cross_validation:
-  num_splits: 8
-  num_repeats: 2
+  num_splits: 1
+  num_repeats: 1
   min_group_size: 5
   random_seed: 801372
 
-#
-# Model training
-#
-model:
-  method: 'random_forest'
-  num_trees: 25000
 
 # minimum number of genes required for a gene set to be used for projecing
 # feature data
@@ -81,7 +77,7 @@ dimension_reduction_early:
 # Dimension reduction (combined dataset)
 #
 dimension_reduction_late:
-  mofa: 
+  mofa:
     modeloptions:
       numFactors: 20
       sparsity: true

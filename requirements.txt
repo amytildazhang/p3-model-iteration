@@ -1,4 +1,4 @@
-python>=3.6
+conda-forge::python>=3.6
 pandas
 mofapy
 scikit-learn

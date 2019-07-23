@@ -2,7 +2,7 @@
 #
 # Feature selection
 #
-library(readr)
+library(tidyverse)
 source('scripts/feature_selection_methods.R')
 
 set.seed(1)
@@ -37,12 +37,36 @@ if (nrow(dat) <= snakemake@config$feature_selection$min_features) {
 CV_ind <- dat[,1]
 train_idx <- CV_ind == 1
 
+METHOD <- snakemake@wildcards$feat
+
+
 # perform feature selection (first attempt)
-if (snakemake@config$feature_selection$method == 'boruta') {
+if (METHOD == 'boruta') {
   features <- boruta_feature_selection(dat[train_idx,-c(1,2)], snakemake) 
-} else if (snakemake@config$feature_selection$method == 'rfe') {
+} else if (METHOD == 'rfe') {
   features <- rfe_feature_selection(dat[train_idx,-c(1,2)], snakemake) 
-} else if (snakemake@config$feature_selection$method == 'none') {
+} else if (METHOD == 'distance') {
+   # Distance correlation -- measures dependence, not necessarily linear (Li, Zhong, Zhu 2012 JASA)
+   Y <- dat[, ncol(dat)]
+
+   library(snow) # set up parallelization of distance correlation calculation
+   cl <- makeCluster(snakemake@threads)
+   clusterCall(cl, function(x) {library(energy)})
+   clusterExport(cl, list("Y", "dat"))
+
+    # get distance correlations
+    dist_cors <- parSapply(cl, 3:(ncol(dat) - 1), function(j) {
+        dcor(pull(dat, j), Y)
+    })
+   stopCluster(cl)
+
+    # choose the top p/log(p) features
+    p <- ncol(dat) - 2
+    min_val <- abs(sort(-dist_cors)[round(p/log(p))])
+
+    features <- colnames(dat)[dist_cors >= min_val]
+ 
+}  else if (METHOD == 'none') {
   # if the feature selection method is set to "none", we can stop here and
   # simply return the full dataset
   write_tsv(dat, snakemake@output[[1]])
@@ -83,7 +107,7 @@ if (length(features) < snakemake@config$feature_selection$min_features) {
 }
 
 # remove unselected features
-dat <- dat[, colnames(dat) %in% c('symbol', 'train_idx', features, 'response')]
+dat <- dat[, colnames(dat) %in% c('sample_id', 'symbol', 'train_idx', features, 'response')]
 
 # store result
 write_tsv(dat, snakemake@output[[1]])

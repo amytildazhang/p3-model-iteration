@@ -30,7 +30,7 @@ if config['debug']:
 
 # base data directory
 input_dir = join('data', config['name'])
-output_dir = join(config['output'], 'output', config['name'], str(config['version']))
+output_dir = join('output', config['name'], str(config['version']))
 
 # load sample metadata
 samples = pd.read_csv(join(input_dir, 'metadata', 'samples.tsv'), sep='\t')
@@ -39,81 +39,103 @@ samples = pd.read_csv(join(input_dir, 'metadata', 'samples.tsv'), sep='\t')
 response_files = [Path(x).name for x in glob.glob(join(input_dir, 'response/*.tsv.gz'))]
 drug_names = [x.replace('.tsv.gz', '') for x in response_files] 
 
-#
-# Cross-validation setup
-#
-rskf = RepeatedStratifiedKFold(n_splits=config['cross_validation']['num_splits'],
-                               n_repeats=config['cross_validation']['num_repeats'],
-                               random_state=config['cross_validation']['random_seed'])
+if config['cross_validation']['num_splits'] == 1:
+    cv_folds = ["alldata"]
+    cv_indices = ["alldata"]
+    model_save = "rds.gz"
+else:
+    model_save = "tsv.gz"
+    #
+    # Cross-validation setup
+    #
+    rskf = RepeatedStratifiedKFold(n_splits=config['cross_validation']['num_splits'],
+                                   n_repeats=config['cross_validation']['num_repeats'],
+                                   random_state=config['cross_validation']['random_seed'])
 
-# create a response-index dict to store CV indices
-cv_folds = {}
+    # create a response-index dict to store CV indices
+    cv_folds = {}
 
-# for each drug, cluster response data into two groups, if possible, and use to
-# generate balanced (stratefied) CV splits
-for response_file in response_files:
-    # load response data and convert to an n x 1 array
-    response = pd.read_csv(join(input_dir, 'response', response_file), sep='\t')
-    arr = response.iloc[0, 1:].to_numpy()
-    dat = arr.reshape(-1, 1)
+    # for each drug, cluster response data into two groups, if possible, and use to
+    # generate balanced (stratefied) CV splits
+    for response_file in response_files:
+        # load response data and convert to an n x 1 array
+        response = pd.read_csv(join(input_dir, 'response', response_file), sep='\t')
+        arr = response.iloc[0, 1:].to_numpy()
+        dat = arr.reshape(-1, 1)
 
-    # perform kmeans clustering
-    clusters = KMeans(n_clusters=2, random_state=0).fit(dat).labels_
+        # perform kmeans clustering
+        clusters = KMeans(n_clusters=2, random_state=0).fit(dat).labels_
 
-    # if too few clusters are found, use extremes instead
-    group_sizes = np.bincount(clusters)
+        # if too few clusters are found, use extremes instead
+        group_sizes = np.bincount(clusters)
 
-    # group_sizes     
-    # array([29, 14])
+        # group_sizes     
+        # array([29, 14])
 
-    min_group_size = config['cross_validation']['min_group_size']
+        min_group_size = config['cross_validation']['min_group_size']
 
-    if min(group_sizes) < min_group_size:
-        # determine which group is associated with lower values
-        if np.mean(dat[clusters == 0]) < np.mean(dat[clusters == 1]):
-            small_value_group = 0
-        else:
-            small_value_group = 1
-        
-        # determine which group is smaller, and extend it to the minimum size
-        if ((group_sizes[0] <= group_sizes[1] and small_value_group == 0) or 
-            (group_sizes[1] <= group_sizes[0] and small_value_group == 1)):
-            # if smaller group contains the lower values, extend to the N smallest values
-            index = arr.argsort()[:min_group_size]
-        else:
-            # otherwise, if smaller group contains the higher values, extend to
-            # the N largest values
-            index = arr.argsort()[-min_group_size:]
+        if min(group_sizes) < min_group_size:
+            # determine which group is associated with lower values
+            if np.mean(dat[clusters == 0]) < np.mean(dat[clusters == 1]):
+                small_value_group = 0
+            else:
+                small_value_group = 1
+            
+            # determine which group is smaller, and extend it to the minimum size
+            if ((group_sizes[0] <= group_sizes[1] and small_value_group == 0) or 
+                (group_sizes[1] <= group_sizes[0] and small_value_group == 1)):
+                # if smaller group contains the lower values, extend to the N smallest values
+                index = arr.argsort()[:min_group_size]
+            else:
+                # otherwise, if smaller group contains the higher values, extend to
+                # the N largest values
+                index = arr.argsort()[-min_group_size:]
 
-        clusters = np.zeros(len(clusters), dtype=np.int8)
-        clusters[index] = 1
+            clusters = np.zeros(len(clusters), dtype=np.int8)
+            clusters[index] = 1
 
-    # store CV fold indices
-    drug_folds = rskf.split(range(samples.shape[0]), clusters)
+        # store CV fold indices
+        drug_folds = rskf.split(range(samples.shape[0]), clusters)
 
-    # convert from list of tuples to a nested dict for better snakemake/R compatibility
-    drug_folds = {'{0:02d}'.format(i + 1): { 'train': x[0], 'test': x[1] } for i, x in enumerate(drug_folds)}
+        # convert from list of tuples to a nested dict for better snakemake/R compatibility
+        drug_folds = {'{0:02d}'.format(i + 1): { 'train': x[0], 'test': x[1] } for i, x in enumerate(drug_folds)}
 
-    # list of sequential numbers equal to the total number of folds to be tested;
-    # used to let snakemake know what files are to be expected
-    num_folds = config['cross_validation']['num_splits'] * config['cross_validation']['num_repeats']
-    cv_indices = [f'{x:02}' for x in list(range(1, num_folds + 1))]
+        # list of sequential numbers equal to the total number of folds to be tested;
+        # used to let snakemake know what files are to be expected
+        num_folds = config['cross_validation']['num_splits'] * config['cross_validation']['num_repeats']
+        cv_indices = [f'{x:02}' for x in list(range(1, num_folds + 1))]
 
-    cv_folds[response_file.replace('.tsv.gz', '')] = drug_folds
+        cv_folds[response_file.replace('.tsv.gz', '')] = drug_folds
 
 
-# specify format of wildcards to prevent ambiguous file names
-wildcard_constraints:
-    cv = "\d+",
-    drug = "[^\/]+" 
+
 
 
 # specify which rules are run locally
-localrules: all, create_training_set, 
+localrules: all, 
+    create_training_set, 
     create_rna_cv_folds, 
     create_cnv_cv_folds,
     create_var_cv_folds,
     create_response_folds
+
+
+
+
+data_transforms = config['model_combinations']['data_transforms']
+models = config['model_combinations']['models']
+dim_reducts = config['model_combinations']['dim_reducts']
+feat_select = config['model_combinations']['feat_select']
+
+
+# specify format of wildcards to prevent ambiguous file names
+wildcard_constraints:
+   cv = "(\d+)|(alldata)",
+   drug = "[^\/]+", 
+   dtrans = "({})".format(")|(".join(data_transforms)), 
+   feat = "({})".format(")|(".join(feat_select)), 
+   dimreduct = "({})".format(")|(".join(dim_reducts)), 
+   model = "({})".format(")|(".join(models))
 
 
 #
@@ -121,39 +143,36 @@ localrules: all, create_training_set,
 #
 #
 rule all:
-    input: expand(join(output_dir, '{{drug}}/{{cv}}/models/{}.tsv.gz'.format(config['model']['method'])), cv=cv_indices, drug=drug_names)
+    input: expand(join(output_dir, '{{dtrans}}/{{drug}}/{{cv}}/models/{{feat}}/{{dimreduct}}/{{model}}.{}'.format(model_save)), dtrans=data_transforms, dimreduct=dim_reducts, model=models, cv=cv_indices, drug=drug_names, feat=feat_select)
 
 #
 # Model training
 #
-if config['dimension_reduction_late']['enabled']:
-    subdir = 'dimension_reduced'
-else:
-    subdir = 'selected'
 
 rule evaluate_model:
-    input: join(output_dir, '{{drug}}/{{cv}}/training_sets/{}/response.tsv.gz'.format(subdir))
-    output: join(output_dir, '{{drug}}/{{cv}}/models/{}.tsv.gz'.format(config['model']['method']))
+    input: join(output_dir, '{dtrans}/{drug}/{cv}/training_sets/dimension_reduced/{dimreduct}/{feat}/response.tsv.gz')
+    output: join(output_dir, '{{dtrans}}/{{drug}}/{{cv}}/models/{{feat}}/{{dimreduct}}/{{model}}.{}'.format(model_save))
     threads: config['num_threads']['train_model']
     script: 'scripts/eval_model.R'
 
-
 #
-# Late dimension reduction (Optional)
+# Late dimension reduction 
 #
-if config['dimension_reduction_late']['enabled']:
-    rule reduce_training_set_dimension:
-        input: join(output_dir, '{drug}/{cv}/training_sets/selected/response.tsv.gz')
-        output: join(output_dir, '{drug}/{cv}/training_sets/dimension_reduced/response.tsv.gz'),
-        script: 'scripts/reduce_dimensions_late.R'
+rule reduce_training_set_dimension:
+    input: join(output_dir, '{dtrans}/{drug}/{cv}/training_sets/selected/{feat}/response.tsv.gz')
+    output: 
+        join(output_dir, '{dtrans}/{drug}/{cv}/training_sets/dimension_reduced/{dimreduct}/{feat}/response.tsv.gz'),
+        join(output_dir, '{dtrans}/{drug}/{cv}/training_sets/dimension_reduced/{dimreduct}/{feat}/extra.tsv.gz') 
+    params: ref_cv = cv_indices[0]
+    script: 'scripts/reduce_dimensions_late.R'
 
 #
 # Feature selection
 #
 rule perform_feature_selection:
-    input: join(output_dir, '{drug}/{cv}/training_sets/full/response.tsv.gz')
-    output: join(output_dir, '{drug}/{cv}/training_sets/selected/response.tsv.gz'),
-    threads: config['num_threads']['train_model']
+    input: join(output_dir, '{dtrans}/{drug}/{cv}/training_sets/full/response.tsv.gz')
+    output: join(output_dir, '{dtrans}/{drug}/{cv}/training_sets/selected/{feat}/response.tsv.gz'),
+    threads: config['num_threads']['feature_selection']
     script:
         'scripts/select_features.R'
  
@@ -163,12 +182,12 @@ rule perform_feature_selection:
 #
 rule create_training_set:
     input:
-        rna=join(output_dir, '{drug}/{cv}/features/filtered/rna.tsv.gz'),
-        cnv=join(output_dir, '{drug}/{cv}/features/filtered/cnv.tsv.gz'),
-        var=join(output_dir, '{drug}/{cv}/features/filtered/var.tsv.gz'),
-        response=join(output_dir, '{drug}/{cv}/response/response.tsv.gz')
+        rna=join(output_dir, '{dtrans}/{drug}/{cv}/features/filtered/rna.tsv.gz'),
+        cnv=join(output_dir, '{dtrans}/{drug}/{cv}/features/filtered/cnv.tsv.gz'),
+        var=join(output_dir, '{dtrans}/{drug}/{cv}/features/filtered/var.tsv.gz'),
+        response=join(output_dir, '{dtrans}/{drug}/{cv}/response/response.tsv.gz')
     output:
-        join(output_dir, '{drug}/{cv}/training_sets/full/response.tsv.gz')
+        join(output_dir, '{dtrans}/{drug}/{cv}/training_sets/full/response.tsv.gz')
     script:
         'scripts/create_training_set.R'
 
@@ -176,111 +195,93 @@ rule create_training_set:
 #
 # Feature filtering
 #
-if config['dimension_reduction_early']['enabled']:
-    subdir = 'dimension_reduced'
-else:
-    if config['gene_set_projection']['enabled']:
-        subdir = 'gene_set_projected'
-    else:
-        subdir = 'raw'
-
 rule filter_rna_features:
-    input: join(output_dir, '{{drug}}/{{cv}}/features/{}/rna.tsv.gz'.format(subdir))
-    output: join(output_dir, '{drug}/{cv}/features/filtered/rna.tsv.gz')
+    input: join(output_dir, '{dtrans}/{drug}/{cv}/features/rna.tsv.gz')
+    output: join(output_dir, '{dtrans}/{drug}/{cv}/features/filtered/rna.tsv.gz')
     script: 'scripts/filter_features.R'
 
 rule filter_cnv_features:
-    input: join(output_dir, '{{drug}}/{{cv}}/features/{}/cnv.tsv.gz'.format(subdir))
-    output: join(output_dir, '{drug}/{cv}/features/filtered/cnv.tsv.gz')
+    input: join(output_dir, '{dtrans}/{drug}/{cv}/features/cnv.tsv.gz')
+    output: join(output_dir, '{dtrans}/{drug}/{cv}/features/filtered/cnv.tsv.gz')
     script: 'scripts/filter_features.R'
 
 rule filter_var_features:
-    input: join(output_dir, '{{drug}}/{{cv}}/features/{}/var.tsv.gz'.format(subdir)) 
-    output: join(output_dir, '{drug}/{cv}/features/filtered/var.tsv.gz')
+    input: join(output_dir, '{dtrans}/{drug}/{cv}/features/var.tsv.gz') 
+    output: join(output_dir, '{dtrans}/{drug}/{cv}/features/filtered/var.tsv.gz')
     script: 'scripts/filter_features.R'
-
-#
-# Early dimension reduction (Optional)
-#
-if config['dimension_reduction_early']['enabled']:
-    if config['gene_set_projection']['enabled']:
-        subdir = 'gene_set_projected'
-    else:
-        subdir = 'raw'
-
-    rule reduce_rna_dimension:
-        input: join(output_dir, '{{drug}}/{{cv}}/features/{}/rna.tsv.gz'.format(subdir))
-        output: join(output_dir, '{drug}/{cv}/features/dimension_reduced/rna.tsv.gz')
-        script: 'scripts/reduce_dimensions_early.R'
-
-    rule reduce_cnv_dimension:
-        input: join(output_dir, '{{drug}}/{{cv}}/features/{}/cnv.tsv.gz'.format(subdir))
-        output: join(output_dir, '{drug}/{cv}/features/dimension_reduced/cnv.tsv.gz')
-        script: 'scripts/reduce_dimensions_early.R'
-
-    rule reduce_var_dimension:
-        input: join(output_dir, '{{drug}}/{{cv}}/features/{}/var.tsv.gz'.format(subdir)) 
-        output: join(output_dir, '{drug}/{cv}/features/dimension_reduced/var.tsv.gz')
-        script: 'scripts/reduce_dimensions_early.R'
 
 #
 # Create cross validation splits
 #
-dtypes = ['rna', 'cnv', 'var']
-if config['gene_set_projection']['enabled']:
-    files = [join(output_dir, '{{drug}}/features/gene_set_projected/{}.tsv.gz').format(dt) for dt in dtypes]
-    subdir = 'gene_set_projected'
-else:
-    files = [join(input_dir, config['features'][dt]) for dt in dtypes]
-    subdir = 'raw'
-filed = dict(zip(dtypes, files))
 
 rule create_rna_cv_folds:
-    input: filed['rna']
-    output: join(output_dir, '{{drug}}/{{cv}}/features/{}/rna.tsv.gz'.format(subdir))
+    input: join(output_dir, '{dtrans}/{drug}/features/rna.tsv.gz')
+    output: join(output_dir, '{dtrans}/{drug}/{cv}/features/rna.tsv.gz')
     params:
         cv_folds=cv_folds
     script: 'scripts/create_cv_folds.R'
 
 rule create_cnv_cv_folds:
-    input: filed['cnv']
-    output: join(output_dir, '{{drug}}/{{cv}}/features/{}/cnv.tsv.gz'.format(subdir))
+    input: join(output_dir, '{dtrans}/{drug}/features/cnv.tsv.gz')
+    output: join(output_dir, '{dtrans}/{drug}/{cv}/features/cnv.tsv.gz')
     params:
         cv_folds=cv_folds
     script: 'scripts/create_cv_folds.R'
 
 rule create_var_cv_folds:
-    input: filed['var']
-    output: join(output_dir, '{{drug}}/{{cv}}/features/{}/var.tsv.gz'.format(subdir))
+    input: join(output_dir, '{dtrans}/{drug}/features/var.tsv.gz')
+    output: join(output_dir, '{dtrans}/{drug}/{cv}/features/var.tsv.gz')
     params:
         cv_folds=cv_folds
     script: 'scripts/create_cv_folds.R'
 
 rule create_response_folds:
     input: join(input_dir, 'response/{drug}.tsv.gz')
-    output: join(output_dir, '{drug}/{cv}/response/response.tsv.gz')
+    output: join(output_dir, '{dtrans}/{drug}/{cv}/response/response.tsv.gz')
     params:
         cv_folds=cv_folds
     script: 'scripts/create_cv_folds.R'
 
 
+
+#
+# Early dimension redution
+#
+#if config['dimension_reduction_early']['enabled']:
+##    if config['gene_set_projection']['enabled']:
+##        files = [join(output_dir, 'gene_set_projected', '{drug}/features/{}.tsv.gz').format(dt) for dt in dtypes]
+##    else:
+##        files = [join(input_dir, config['features'][dt]) for dt in dtypes]
+##    filed = dict(zip(dtypes, files))
+##
+##    rule reduce_dimension:
+##        input: filed
+##        output: 
+##            join(output_dir, '{drug}/features/rna.tsv.gz'),
+##            join(output_dir, '{drug}/features/cnv.tsv.gz'),
+##            join(output_dir, '{drug}/features/var.tsv.gz')
+##        script: 'scripts/reduce_dimensions_early.R'
+##
+#
+#
+
+
 #
 # Gene set aggregation (optional)
 #
-if config['gene_set_projection']['enabled']:
-    rule project_rna_gene_sets:
-        input: join(input_dir, config['features']['rna'])
-        output: join(output_dir, '{drug}/features/gene_set_projected/rna.tsv.gz')
-        script: 'scripts/project_gene_sets.R'
+rule project_rna_gene_sets:
+    input: join(input_dir, config['features']['rna'])
+    output: join(output_dir, '{dtrans}/{drug}/features/rna.tsv.gz')
+    script: 'scripts/project_gene_sets.R'
 
-    rule project_cnv_gene_sets:
-        input: join(input_dir, config['features']['cnv'])
-        output: join(output_dir, '{drug}/features/gene_set_projected/cnv.tsv.gz')
-        script: 'scripts/project_gene_sets.R'
+rule project_cnv_gene_sets:
+    input: join(input_dir, config['features']['cnv'])
+    output: join(output_dir, '{dtrans}/{drug}/features/cnv.tsv.gz')
+    script: 'scripts/project_gene_sets.R'
 
-    rule project_var_gene_sets:
-        input: join(input_dir, config['features']['var'])
-        output: join(output_dir, '{drug}/features/gene_set_projected/var.tsv.gz')
-        script: 'scripts/project_gene_sets.R'
+rule project_var_gene_sets:
+    input: join(input_dir, config['features']['var'])
+    output: join(output_dir, '{dtrans}/{drug}/features/var.tsv.gz')
+    script: 'scripts/project_gene_sets.R'
 
 

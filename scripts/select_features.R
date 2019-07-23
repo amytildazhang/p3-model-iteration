@@ -51,7 +51,7 @@ if (METHOD == 'boruta') {
 
    library(snow) # set up parallelization of distance correlation calculation
    cl <- makeCluster(snakemake@threads)
-   clusterCall(cl, function(x) {library(energy)})
+   clusterCall(cl, function(x) {library(energy); library(tidyverse)})
    clusterExport(cl, list("Y", "dat"))
 
     # get distance correlations

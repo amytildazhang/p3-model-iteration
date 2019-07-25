@@ -70,7 +70,7 @@ if (MODEL == 'random_forest') {
 		fit(response ~ ., data = dat)
 } else {
      if (!FIT_FULL) X_test <- cbind(1, as.matrix(dat[!train_idx, -c(1,2,y_col)]))
-     p <- ncol(dat) - 3
+     p <- ncol(dat) - 2
      if (MODEL == 'linear') {
           if (ncol(dat) > nrow(dat)) stop("Number of features is larger than number of samples--did you mean to run a regularized model?")
           armfit <- stan_glm(response ~ ., dat[train_idx, -c(1:2)], 

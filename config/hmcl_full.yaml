@@ -1,13 +1,45 @@
 ################################################################################
 #
-# GDSC pipeline configuration
+# HMCL pipeline configuration
 #
 ################################################################################
-name: gdsc
+name: hmcl
 version: 0.2
 debug: true
 output: '/data/zhangamx/p3-model-iteration/'   # larger directory for output storage
 
+
+#
+# Computational resources
+# 
+
+# per-rule thread usage for parellelized rules
+num_threads:
+  feature_selection: 1
+  train_model: 4
+  filter_features: 12
+#
+# Feature input data
+# 
+features:
+  rna: 'rna/rnaseq_grch38_featurecounts_cpm.tsv.gz'
+  cnv: 'cnv/cnv_rcgh_gene_table_log2ratio_hg38.tsv.gz'
+  var: 'var/exome_variants_by_gene_grch38.tsv.gz'
+
+#
+# Cross validation
+#
+
+# parameters to use for outer repeated cross validation
+cross_validation:
+  num_splits: 1
+  num_repeats: 1
+  min_group_size: 5
+  random_seed: 801372
+
+#
+# Model training
+#
 
 #
 # Pathway aggregation
@@ -16,52 +48,21 @@ output: '/data/zhangamx/p3-model-iteration/'   # larger directory for output sto
 model_combinations:
   data_transforms:
     - gene_set_projected
+    - raw
   models:
     - linear
     - bimixture
+    - horseshoe
   dim_reducts:
-    - sparse_pls
+    - mofa
   feat_select:
-    - none
+    - distance
 
-#
-# Computational resources
-# 
-
-# per-rule thread usage for parellelized rules
-num_threads:
-  feature_selection: 8
-  train_model: 4
-  filter_features: 8
-#
-# Feature input data
-#
-features:
-  rna: 'rna/GDSC_rna.tsv.gz'
-  cnv: 'cnv/GDSC_cnv.tsv.gz'
-  var: 'var/GDSC_var.tsv.gz'
-
-#
-# Cross validation
-#
-
-# parameters to use for outer repeated cross validation
-cross_validation:
-  num_splits: 8
-  num_repeats: 2
-  min_group_size: 5
-  random_seed: 801372
-
-#
-# Model training
-#
-model:
-  method: 'random_forest'
-  num_trees: 25000
 
 # minimum number of genes required for a gene set to be used for projecing
 # feature data
 gene_set_projection:
+  enabled: true
   gene_set_min_size: 5
   aggregation_funcs:
     rna: median
@@ -72,25 +73,25 @@ gene_set_projection:
 # Dimension reduction (individual datasets)
 #
 dimension_reduction_early:
-  pca: 
-    scale: true
-    min_variance: 0.95
+  enabled: false
+  method: pca
+  scale: true
+  min_variance: 0.95
 
 #
 
 # Dimension reduction (combined dataset)
 #
 dimension_reduction_late:
-  mofa: 
+  mofa:
     modeloptions:
       numFactors: 20
       sparsity: true
     trainoptions:
       maxiter: 3000
       tolerance: 1.0
-      DropFactorThreshold: 0.01
       seed: 23827
-
+#      DropFactorThreshold: 0.01
 
 #
 # Feature filtering
@@ -120,8 +121,8 @@ feature_filtering:
     min_var_quantile: 0.25
     max_cor: 0.95
   var:
-    min_var_quantile: 0
-    max_cor: 1
+    min_var_quantile: 0.25
+    max_cor: 0.90
 
 #
 # Feature selection
@@ -133,7 +134,7 @@ feature_filtering:
 # implementation of random forests.
 # 
 feature_selection:
-  method: rfe
+  method: none
   fallback: none
   min_features: 100
   max_features: 1000

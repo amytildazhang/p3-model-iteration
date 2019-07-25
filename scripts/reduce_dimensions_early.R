@@ -39,4 +39,47 @@ if (snakemake@config$dimension_reduction_early$method == 'pca') {
     write_tsv(snakemake@output[[1]])
 } else {
   stop("Unsupported dimension reduction method specified!")
+} else if (snakemake@config$dimension_reduction_early$method == 'pca') {
+  library(MOFA)
+
+    # MoFA prefers having sample names
+    rownames(feat) <- pull(dat, sample_id)
+
+    # separate data into view-specific matrices
+    view_labs <- str_split(colnames(feat), "_", simplify = T)[,1]
+    views <- unique(view_labs)
+    view_mats <- map(views, function(vw) {
+        mat <- t(feat[, view_labs == vw]) # must fit to full data
+        rownames(mat) <- NULL
+        mat
+    }) %>% set_names(views)
+
+    # create MOFA object
+    MOFAobj <- createMOFAobject(view_mats)
+
+    # MoFA settings: number of factors, thresholds, iterations, seed
+    ModelOptions <- getDefaultModelOptions(MOFAobj)
+    ModelOptions$numFactors <- min(20, sum(train_idx))
+    TrainOptions <- getDefaultTrainOptions()
+    TrainOptions$maxiter <- 1e4
+    TrainOptions$seed <- 54897
+
+
+    # run MoFA
+    MOFAobj <- prepareMOFA(MOFAobj, ModelOptions = ModelOptions,
+                       TrainOptions = TrainOptions)
+    MOFAobj <- runMOFA(MOFAobj)
+
+    # use latent factors as features
+    latent_feats <- getFactors(MOFAobj)
+
+    # save weight matrices
+    weights <- getWeights(MOFAobj)
+    weights <- lapply(views, function(vw) {
+        mat <- weights[[vw]]
+        rownames(mat) <- colnames(feat)[view_labs == vw]
+        t(mat)
+    })
+    write_tsv(do.call("cbind", weights), snakemake@output[[2]])
+
 }

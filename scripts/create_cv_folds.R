@@ -5,9 +5,15 @@
 suppressMessages(library(tidyverse))
 options(stringsAsFactors = FALSE)
 
-# get cv fold indices
-cv_fold <- snakemake@params$cv_folds[[snakemake@wildcards$drug]][[snakemake@wildcards$cv]]
+# load feature data
+dat <- read_tsv(snakemake@input[[1]], col_types = cols())
 
+# get cv fold indices
+if (snakemake@wildcards$cv == "alldata") {
+  cv_fold <- list(train = 0:ncol(dat))
+} else {
+  cv_fold <- snakemake@params$cv_folds[[snakemake@wildcards$drug]][[snakemake@wildcards$cv]]
+}
 #
 # $train
 # [1]  0  1  2  3  4  6 11 13 14 16 19 20 21 22 24 25 26 29 30 32 33 34 36 37 38
@@ -16,9 +22,6 @@ cv_fold <- snakemake@params$cv_folds[[snakemake@wildcards$drug]][[snakemake@wild
 # $test
 # [1]  5  7  8  9 10 12 15 17 18 23 27 28 31 35
 #
-
-# load feature data
-dat <- read_tsv(snakemake@input[[1]], col_types = cols())
 
 # first column contains identifiers
 ID_COL_OFFSET <- 1

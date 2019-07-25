@@ -13,6 +13,10 @@ data_type <- strsplit(snakemake@rule, '_')[[1]][[2]]
 # load feature data
 dat <- read_tsv(snakemake@input[[1]], col_types = cols())
 
+if (snakemake@wildcards[['dtrans']] == 'raw') {
+  write_tsv(dat, snakemake@output[[1]])
+} else {
+
 # load gene sets
 gene_sets = c()
 
@@ -72,3 +76,4 @@ res <- bind_cols(gene_set = gset_names, as.data.frame(res))
 
 write_tsv(res, snakemake@output[[1]])
 
+}

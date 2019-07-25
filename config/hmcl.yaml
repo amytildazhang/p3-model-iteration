@@ -15,9 +15,9 @@ output: '/data/zhangamx/p3-model-iteration/'   # larger directory for output sto
 
 # per-rule thread usage for parellelized rules
 num_threads:
-  feature_selection: 16
-  train_model: 16
-
+  feature_selection: 8
+  train_model: 4
+  filter_features: 12
 #
 # Feature input data
 # 
@@ -40,18 +40,28 @@ cross_validation:
 #
 # Model training
 #
-model:
-  method: 'linear'
-  num_trees: 25000
 
 #
 # Pathway aggregation
 #
 
+model_combinations:
+  data_transforms:
+    - gene_set_projected
+    - raw
+  models:
+    - linear
+    - bimixture
+  dim_reducts:
+    - sparse_pls
+  feat_select:
+    - none
+
+
 # minimum number of genes required for a gene set to be used for projecing
 # feature data
 gene_set_projection:
-  enabled: true 
+  enabled: true
   gene_set_min_size: 5
   aggregation_funcs:
     rna: median
@@ -72,8 +82,15 @@ dimension_reduction_early:
 # Dimension reduction (combined dataset)
 #
 dimension_reduction_late:
-  enabled: true
-  method: 'sparse_pls'
+  mofa:
+    modeloptions:
+      numFactors: 20
+      sparsity: true
+    trainoptions:
+      maxiter: 3000
+      tolerance: 1.0
+      seed: 23827
+#      DropFactorThreshold: 0.01
 
 #
 # Feature filtering

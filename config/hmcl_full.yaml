@@ -46,7 +46,7 @@ model_combinations:
     - raw
   feature_selection:
     - distance
-  dimension_reductions:
+  dimension_reduction:
     - mofa
   models:
     - linear

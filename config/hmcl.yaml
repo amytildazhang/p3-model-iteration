@@ -46,7 +46,7 @@ model_combinations:
     - raw
   feature_selection:
     - none
-  dimension_reductions:
+  dimension_reduction:
     - sparse_pls
   models:
     - linear

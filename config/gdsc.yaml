@@ -17,7 +17,7 @@ model_combinations:
     - gene_sets
   feature_selection:
     - none
-  dimension_reductions:
+  dimension_reduction:
     - sparse_pls
   models:
     - linear

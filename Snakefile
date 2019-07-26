@@ -39,15 +39,22 @@ samples = pd.read_csv(join(input_dir, 'metadata', 'samples.tsv'), sep='\t')
 response_files = [Path(x).name for x in glob.glob(join(input_dir, 'response/*.tsv.gz'))]
 drug_names = [x.replace('.tsv.gz', '') for x in response_files] 
 
+#
+# Cross-validation setup
+#
 if config['cross_validation']['num_splits'] == 1:
+    #
+    # No cross-validation
+    #
     cv_folds = ["alldata"]
     cv_indices = ["alldata"]
     model_save = "rds"
 else:
+    #
+    # Stratified Repeated cross validation
+    #
     model_save = "tsv.gz"
-    #
-    # Cross-validation setup
-    #
+
     rskf = RepeatedStratifiedKFold(n_splits=config['cross_validation']['num_splits'],
                                    n_repeats=config['cross_validation']['num_repeats'],
                                    random_state=config['cross_validation']['random_seed'])
@@ -115,7 +122,7 @@ localrules: all,
     create_var_cv_folds,
     create_response_folds
 
-data_aggregations = config['model_combinations']['data_aggregations']
+data_aggregations = config['model_combinations']['aggregations']
 models = config['model_combinations']['models']
 dim_reducts = config['model_combinations']['dim_reducts']
 feat_select = config['model_combinations']['feat_select']

@@ -233,30 +233,6 @@ rule create_response_folds:
         cv_folds=cv_folds
     script: 'scripts/create_cv_folds.R'
 
-
-
-#
-# Early dimension redution
-#
-#if config['dimension_reduction_early']['enabled']:
-##    if config['gene_set_projection']['enabled']:
-##        files = [join(output_dir, 'gene_set_projected', '{drug}/features/{}.tsv.gz').format(dt) for dt in dtypes]
-##    else:
-##        files = [join(input_dir, config['features'][dt]) for dt in dtypes]
-##    filed = dict(zip(dtypes, files))
-##
-##    rule reduce_dimension:
-##        input: filed
-##        output: 
-##            join(output_dir, '{drug}/features/rna.tsv.gz'),
-##            join(output_dir, '{drug}/features/cnv.tsv.gz'),
-##            join(output_dir, '{drug}/features/var.tsv.gz')
-##        script: 'scripts/reduce_dimensions_early.R'
-##
-#
-#
-
-
 #
 # Gene set aggregation (optional)
 #

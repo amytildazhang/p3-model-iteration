@@ -172,7 +172,6 @@ rule perform_feature_selection:
     threads: config['num_threads']['feature_selection']
     script:
         'scripts/select_features.R'
- 
 
 #
 # Create training set
@@ -187,7 +186,6 @@ rule create_training_set:
         join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/full/response.tsv.gz')
     script:
         'scripts/create_training_set.R'
-
 
 #
 # Feature filtering

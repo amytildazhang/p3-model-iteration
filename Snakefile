@@ -107,10 +107,6 @@ else:
 
         cv_folds[response_file.replace('.tsv.gz', '')] = drug_folds
 
-
-
-
-
 # specify which rules are run locally
 localrules: all, 
     create_training_set, 
@@ -119,14 +115,10 @@ localrules: all,
     create_var_cv_folds,
     create_response_folds
 
-
-
-
 data_transforms = config['model_combinations']['data_transforms']
 models = config['model_combinations']['models']
 dim_reducts = config['model_combinations']['dim_reducts']
 feat_select = config['model_combinations']['feat_select']
-
 
 # specify format of wildcards to prevent ambiguous file names
 wildcard_constraints:

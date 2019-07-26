@@ -38,29 +38,25 @@ cross_validation:
   random_seed: 801372
 
 #
-# Model training
+# Model specification
 #
-
-#
-# Pathway aggregation
-#
-
 model_combinations:
-  aggregations:
+  feature_aggregation:
     - gene_sets
     - raw
+  feature_selection:
+    - distance
+  dimension_reductions:
+    - mofa
   models:
     - linear
     - bimixture
     - horseshoe
-  dim_reducts:
-    - mofa
-  feat_select:
-    - distance
 
 
-# minimum number of genes required for a gene set to be used for projecing
-# feature data
+#
+# Feature aggregation
+#
 gene_set_aggregation:
   gene_set_min_size: 5
   aggregation_funcs:
@@ -69,9 +65,9 @@ gene_set_aggregation:
     var: sum
 
 #
-# Dimension reduction (combined dataset)
+# Dimension reduction
 #
-dimension_reduction_late:
+dimension_reduction:
   mofa:
     modeloptions:
       numFactors: 20
@@ -80,7 +76,7 @@ dimension_reduction_late:
       maxiter: 3000
       tolerance: 1.0
       seed: 23827
-#      DropFactorThreshold: 0.01
+      # DropFactorThreshold: 0.01
 
 #
 # Feature filtering

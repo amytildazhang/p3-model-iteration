@@ -10,8 +10,8 @@
 # 2. Split data into CV folds
 # 3. Feature filtering (unsupervised)
 # 4. Training set construction
-# 5. Late dimension reduction [Optional]
-# 6. Feature selection (supervised)
+# 5. Feature selection (supervised)
+# 6. Dimension reduction
 # 7. Model training 
 #
 import glob
@@ -122,18 +122,18 @@ localrules: all,
     create_response_folds
 
 # model-related parameters
-data_aggregations = config['model_combinations']['aggregations']
-models = config['model_combinations']['models']
-dim_reducts = config['model_combinations']['dim_reducts']
-feat_select = config['model_combinations']['feat_select']
+feature_aggregation = config['model_combinations']['feature_aggregation']
+feature_selection   = config['model_combinations']['feature_selection']
+dimension_reduction = config['model_combinations']['dimension_reduction']
+models              = config['model_combinations']['models']
 
 # specify format of wildcards to prevent ambiguous file names
 wildcard_constraints:
    cv = "(\d+)|(alldata)",
    drug = "[^\/]+", 
-   aggregation = "({})".format(")|(".join(data_aggregations)), 
-   feat = "({})".format(")|(".join(feat_select)), 
-   dimreduct = "({})".format(")|(".join(dim_reducts)), 
+   aggregation = "({})".format(")|(".join(feature_aggregation)), 
+   feat = "({})".format(")|(".join(feature_selection)), 
+   dim_red = "({})".format(")|(".join(dimension_reduction)), 
    model = "({})".format(")|(".join(models))
 
 #
@@ -141,27 +141,27 @@ wildcard_constraints:
 #
 #
 rule all:
-    input: expand(join(output_dir, '{{aggregation}}/{{drug}}/{{cv}}/models/{{feat}}/{{dimreduct}}/{{model}}.{}'.format(model_save)), aggregation=data_aggregations, dimreduct=dim_reducts, model=models, cv=cv_indices, drug=drug_names, feat=feat_select)
+    input: expand(join(output_dir, '{{aggregation}}/{{drug}}/{{cv}}/models/{{feat}}/{{dim_red}}/{{model}}.{}'.format(model_save)), aggregation=feature_aggregation, dim_red=dimension_reduction, model=models, cv=cv_indices, drug=drug_names, feat=feature_selection)
 
 #
 # Model training
 #
 
 rule evaluate_model:
-    input: join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/dimension_reduced/{dimreduct}/{feat}/response.tsv.gz')
-    output: join(output_dir, '{{aggregation}}/{{drug}}/{{cv}}/models/{{feat}}/{{dimreduct}}/{{model}}.{}'.format(model_save))
+    input: join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/dimension_reduced/{dim_red}/{feat}/response.tsv.gz')
+    output: join(output_dir, '{{aggregation}}/{{drug}}/{{cv}}/models/{{feat}}/{{dim_red}}/{{model}}.{}'.format(model_save))
     threads: config['num_threads']['train_model']
     script: 'scripts/eval_model.R'
 
 #
-# Late dimension reduction 
+# Dimension reduction
 #
 rule reduce_training_set_dimension:
     input: join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/selected/{feat}/response.tsv.gz')
     output: 
-        join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/dimension_reduced/{dimreduct}/{feat}/response.tsv.gz'),
-        join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/dimension_reduced/{dimreduct}/{feat}/extra.tsv.gz') 
-    script: 'scripts/reduce_dimensions_late.R'
+        join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/dimension_reduced/{dim_red}/{feat}/response.tsv.gz'),
+        join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/dimension_reduced/{dim_red}/{feat}/extra.tsv.gz') 
+    script: 'scripts/reduce_dimensions.R'
 
 #
 # Feature selection

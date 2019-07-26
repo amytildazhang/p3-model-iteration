@@ -10,19 +10,18 @@ output: '/data/zhangamx/p3-model-iteration/'   # larger directory for output sto
 
 
 #
-# Pathway aggregation
+# Model specification
 #
-
 model_combinations:
-  aggregations:
+  feature_aggregation:
     - gene_sets
+  feature_selection:
+    - none
+  dimension_reductions:
+    - sparse_pls
   models:
     - linear
     - bimixture
-  dim_reducts:
-    - sparse_pls
-  feat_select:
-    - none
 
 #
 # Computational resources
@@ -59,8 +58,9 @@ model:
   method: 'random_forest'
   num_trees: 25000
 
-# minimum number of genes required for a gene set to be used for projecing
-# feature data
+#
+# Feature aggregation
+#
 gene_set_aggregation:
   gene_set_min_size: 5
   aggregation_funcs:
@@ -69,9 +69,9 @@ gene_set_aggregation:
     var: sum
 
 #
-# Dimension reduction (combined dataset)
+# Dimension reduction
 #
-dimension_reduction_late:
+dimension_reduction:
   mofa: 
     modeloptions:
       numFactors: 20
@@ -81,7 +81,6 @@ dimension_reduction_late:
       tolerance: 1.0
       DropFactorThreshold: 0.01
       seed: 23827
-
 
 #
 # Feature filtering

@@ -42,7 +42,7 @@ drug_names = [x.replace('.tsv.gz', '') for x in response_files]
 if config['cross_validation']['num_splits'] == 1:
     cv_folds = ["alldata"]
     cv_indices = ["alldata"]
-    model_save = "rds.gz"
+    model_save = "rds"
 else:
     model_save = "tsv.gz"
     #

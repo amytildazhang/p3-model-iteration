@@ -1,6 +1,7 @@
 #!/bin/env Rscript
+################################################################################
 #
-# Train a model for the specified training set
+# Trains a model for the specified training set
 #
 # In order to provide consistent output from various models, the tidymodels package is
 # used.
@@ -14,14 +15,15 @@
 #  https://tidymodels.github.io/parsnip/articles/articles/Scratch.html
 #  https://tidymodels.github.io/model-implementation-principles/
 #
-#
+################################################################################
 
 system("module load openblas gcc/7.3.0")
+
 source("scripts/model_functions.R")
+
 library(caret)
 library(parsnip)
 library(tidyverse)
-
 library(rstanarm)
 
 set.seed(1)
@@ -35,7 +37,6 @@ train_idx <- dat[,2] == 1
 # identify whether we're fitting to ufll data or not
 FIT_FULL <- all(train_idx)
 
-
 # scale and center responses, so that prior scale is less likely to be inappropriate
 y <- pull(dat, response)
 mean_y <- mean(y[train_idx]); sd_y <- sd(y[train_idx]);
@@ -48,6 +49,9 @@ colnames(dat) <- make.names(cnames)
 
 MODEL <- snakemake@wildcards$model
 
+#
+# TODO: comment / clean-up syntax per suggestions/conventions in other files... 
+#
 
 # Choose model to run
 if (MODEL == 'random_forest') {

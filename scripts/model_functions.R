@@ -1,12 +1,51 @@
+#
+# TODO: comment / repeat for each function... since this is where some of the key
+# computations will be performed, it's worth explaining things a bit more verbosely
+# here / including any useful references.
+# 
+# For documenting functions, you can follow http://r-pkgs.had.co.nz/man.html#man-workflow
+# I added the section headers (overview, etc.) for convenience..
+#
+
+#'
+#' SHORT DESC
+#'
+#' Overview
+#' --------
+#'
+#' LONGER DESC
+#' 
+#' Parameters
+#' ----------
+#'
+#' @param stanfit <type> <description>
+#' @param sampnames 
+#' @param X
+#' @param resp
+#'
+#' Returns
+#' -------
+#'
+#' @return <desc>
+#'
+#' References
+#' ----------
+#' 1. xx
+#' 2. yy
+#'
+
+# TODO: use underscores for all variables/function names 
 draw_post.bimodal <- function(stanfit, sampnames, X, resp = NULL) {
     # bivariate mixture model
     samps <- rstan::extract(stanfit)
+
+    # TODO: comment each basic step inside function definitions.. this is mostly for 
+    # my benefit since a lot of this
+    # is going to be new to me... :)
     prob_mix <- pnorm(X %*% t(samps$B))
     mixtures <- map(1:2, function(a) {
-        rnorm(nrow(samps$mu), mean = samps$mu[,a], sd = samps$sigma[,a])
+        rnorm(nrow(samps$mu), mean = samps$mu[, a], sd = samps$sigma[, a])
     })
-    
-   
     
     yhats <- sapply(1:nrow(prob_mix), function(i) {
         prob_mix[i, ] * mixtures[[1]] + (1 - prob_mix[i, ]) * mixtures[[2]]

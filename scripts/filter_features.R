@@ -26,7 +26,7 @@ CV_IND_OFFSET = 1
 # TODO: add comment
 # 
 test_index <- CV_IND_OFFSET + which(dat[1, -1] == 0)
-cv_indices <- dat[1, ]
+cv_mask <- dat[1, ]
 
 test_dat <- dat[-1, c(1, test_index)]
 
@@ -138,7 +138,7 @@ if (max_cor < 1 && nrow(dat) > 2) {
 # TODO: comment
 #
 test_dat <- left_join(dat[, 1], test_dat)
-dat <- rbind(cv_indices, cbind(dat, test_dat)[, colnames(cv_indices)])
+dat <- rbind(cv_mask, cbind(dat, test_dat)[, colnames(cv_mask)])
 
 #
 # TODO: comment
@@ -148,7 +148,7 @@ dat <- rbind(cv_indices, cbind(dat, test_dat)[, colnames(cv_indices)])
 if (max_cor < 1 && nrow(dat) > 2) {
   if (nrow(dat) != sum(ind) + 1) {
     stop("Lost or added features along the way.")
-  } else if (ncol(dat) != ncol(CV_ind)) {
+  } else if (ncol(dat) != length(cv_mask)) {
     stop("Lost or added samples along the way.")
   }
 }

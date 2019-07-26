@@ -6,14 +6,13 @@
 
 # Pipeline steps:
 #
-# 1. Split data into CV folds
-# 2. Gene set projection [Optional]
-# 3. Early dimension reduction [Optional]
-# 4. Feature filtering (unsupervised)
-# 5. Training set construction
-# 6. Late dimension reduction [Optional]
-# 7. Feature selection (supervised)
-# 8. Model training 
+# 1. Feature aggregation
+# 2. Split data into CV folds
+# 3. Feature filtering (unsupervised)
+# 4. Training set construction
+# 5. Late dimension reduction [Optional]
+# 6. Feature selection (supervised)
+# 7. Model training 
 #
 import glob
 import os
@@ -122,6 +121,7 @@ localrules: all,
     create_var_cv_folds,
     create_response_folds
 
+# model-related parameters
 data_aggregations = config['model_combinations']['aggregations']
 models = config['model_combinations']['models']
 dim_reducts = config['model_combinations']['dim_reducts']
@@ -135,7 +135,6 @@ wildcard_constraints:
    feat = "({})".format(")|(".join(feat_select)), 
    dimreduct = "({})".format(")|(".join(dim_reducts)), 
    model = "({})".format(")|(".join(models))
-
 
 #
 # Rules

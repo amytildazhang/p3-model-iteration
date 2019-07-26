@@ -69,15 +69,6 @@ gene_set_aggregation:
     var: sum
 
 #
-# Dimension reduction (individual datasets)
-#
-dimension_reduction_early:
-  pca: 
-    scale: true
-    min_variance: 0.95
-
-#
-
 # Dimension reduction (combined dataset)
 #
 dimension_reduction_late:

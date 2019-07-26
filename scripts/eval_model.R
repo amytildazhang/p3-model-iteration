@@ -17,7 +17,10 @@
 #
 ################################################################################
 
-system("module load openblas gcc/7.3.0")
+# if running on Biowulf, load openblas + gcc/7.3.0
+if (startsWith(Sys.info()[['nodename']], 'cn')) {
+  system("module load openblas gcc/7.3.0")
+}
 
 source("scripts/model_functions.R")
 

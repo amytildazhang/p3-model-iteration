@@ -163,7 +163,6 @@ rule reduce_training_set_dimension:
     output: 
         join(output_dir, '{dtrans}/{drug}/{cv}/training_sets/dimension_reduced/{dimreduct}/{feat}/response.tsv.gz'),
         join(output_dir, '{dtrans}/{drug}/{cv}/training_sets/dimension_reduced/{dimreduct}/{feat}/extra.tsv.gz') 
-    params: ref_cv = cv_indices[0]
     script: 'scripts/reduce_dimensions_late.R'
 
 #

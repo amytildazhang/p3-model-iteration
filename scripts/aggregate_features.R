@@ -1,14 +1,15 @@
 #!/bin/env Rscript
 #
-# aggregate feature data along specified pathways / gene sets
+# Aggregates feature data along specified pathways / gene sets. If set to "raw", no
+# such aggregation is performed and the script simply makes a copy of the raw data.
 #
 suppressMessages(library(GSEABase))
 suppressMessages(library(tidyverse))
 
 options(stringsAsFactors = FALSE)
 
-# determine input data type from wildcards ("create_rna_gene_sets" => "rna")
-data_type <- strsplit(snakemake@rule, '_')[[1]][[2]] 
+# determine input data type from wildcards ("aggregate_rna" => "rna")
+data_type <- strsplit(snakemake@rule, '_')[[1]][2] 
 
 # load feature data
 dat <- read_tsv(snakemake@input[[1]], col_types = cols())
@@ -16,11 +17,11 @@ dat <- read_tsv(snakemake@input[[1]], col_types = cols())
 #
 # RAW (no data transformation applied)
 #
-if (snakemake@wildcards[['dtrans']] == 'raw') {
+if (snakemake@wildcards[['aggregation']] == 'raw') {
   write_tsv(dat, snakemake@output[[1]])
 } else {
   #
-  # GENE SET PROJECTION
+  # GENE SET AGGREGATION
   #
 
   # load gene sets
@@ -42,7 +43,7 @@ if (snakemake@wildcards[['dtrans']] == 'raw') {
 
   # exclude any gene sets with fewer than the required number of genes
   set_sizes <- lapply(gene_sets, length)
-  mask <- set_sizes >= snakemake@config$gene_set_projection$gene_set_min_size
+  mask <- set_sizes >= snakemake@config$gene_set_aggregation$gene_set_min_size
 
   gene_sets <- gene_sets[mask]
 
@@ -51,7 +52,7 @@ if (snakemake@wildcards[['dtrans']] == 'raw') {
   gset_names <- c()
 
   # determine which aggregation function to use (mean, median, etc.)
-  agg_func <- snakemake@config$gene_set_projection$aggregation_funcs[[data_type]]
+  agg_func <- snakemake@config$gene_set_aggregation$aggregation_funcs[[data_type]]
 
   ID_COL_INDEX <- 1
 

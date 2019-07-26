@@ -14,8 +14,8 @@ output: '/data/zhangamx/p3-model-iteration/'   # larger directory for output sto
 #
 
 model_combinations:
-  data_transforms:
-    - gene_set_projected
+  aggregations:
+    - gene_sets
     - raw
   models:
     - linear
@@ -57,7 +57,7 @@ cross_validation:
 
 # minimum number of genes required for a gene set to be used for projecing
 # feature data
-gene_set_projection:
+gene_set_aggregation:
   gene_set_min_size: 5
   aggregation_funcs:
     rna: median

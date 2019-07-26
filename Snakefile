@@ -115,7 +115,7 @@ localrules: all,
     create_var_cv_folds,
     create_response_folds
 
-data_transforms = config['model_combinations']['data_transforms']
+data_aggregations = config['model_combinations']['data_aggregations']
 models = config['model_combinations']['models']
 dim_reducts = config['model_combinations']['dim_reducts']
 feat_select = config['model_combinations']['feat_select']
@@ -124,7 +124,7 @@ feat_select = config['model_combinations']['feat_select']
 wildcard_constraints:
    cv = "(\d+)|(alldata)",
    drug = "[^\/]+", 
-   dtrans = "({})".format(")|(".join(data_transforms)), 
+   aggregation = "({})".format(")|(".join(data_aggregations)), 
    feat = "({})".format(")|(".join(feat_select)), 
    dimreduct = "({})".format(")|(".join(dim_reducts)), 
    model = "({})".format(")|(".join(models))
@@ -135,15 +135,15 @@ wildcard_constraints:
 #
 #
 rule all:
-    input: expand(join(output_dir, '{{dtrans}}/{{drug}}/{{cv}}/models/{{feat}}/{{dimreduct}}/{{model}}.{}'.format(model_save)), dtrans=data_transforms, dimreduct=dim_reducts, model=models, cv=cv_indices, drug=drug_names, feat=feat_select)
+    input: expand(join(output_dir, '{{aggregation}}/{{drug}}/{{cv}}/models/{{feat}}/{{dimreduct}}/{{model}}.{}'.format(model_save)), aggregation=data_aggregations, dimreduct=dim_reducts, model=models, cv=cv_indices, drug=drug_names, feat=feat_select)
 
 #
 # Model training
 #
 
 rule evaluate_model:
-    input: join(output_dir, '{dtrans}/{drug}/{cv}/training_sets/dimension_reduced/{dimreduct}/{feat}/response.tsv.gz')
-    output: join(output_dir, '{{dtrans}}/{{drug}}/{{cv}}/models/{{feat}}/{{dimreduct}}/{{model}}.{}'.format(model_save))
+    input: join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/dimension_reduced/{dimreduct}/{feat}/response.tsv.gz')
+    output: join(output_dir, '{{aggregation}}/{{drug}}/{{cv}}/models/{{feat}}/{{dimreduct}}/{{model}}.{}'.format(model_save))
     threads: config['num_threads']['train_model']
     script: 'scripts/eval_model.R'
 
@@ -151,18 +151,18 @@ rule evaluate_model:
 # Late dimension reduction 
 #
 rule reduce_training_set_dimension:
-    input: join(output_dir, '{dtrans}/{drug}/{cv}/training_sets/selected/{feat}/response.tsv.gz')
+    input: join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/selected/{feat}/response.tsv.gz')
     output: 
-        join(output_dir, '{dtrans}/{drug}/{cv}/training_sets/dimension_reduced/{dimreduct}/{feat}/response.tsv.gz'),
-        join(output_dir, '{dtrans}/{drug}/{cv}/training_sets/dimension_reduced/{dimreduct}/{feat}/extra.tsv.gz') 
+        join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/dimension_reduced/{dimreduct}/{feat}/response.tsv.gz'),
+        join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/dimension_reduced/{dimreduct}/{feat}/extra.tsv.gz') 
     script: 'scripts/reduce_dimensions_late.R'
 
 #
 # Feature selection
 #
 rule perform_feature_selection:
-    input: join(output_dir, '{dtrans}/{drug}/{cv}/training_sets/full/response.tsv.gz')
-    output: join(output_dir, '{dtrans}/{drug}/{cv}/training_sets/selected/{feat}/response.tsv.gz'),
+    input: join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/full/response.tsv.gz')
+    output: join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/selected/{feat}/response.tsv.gz'),
     threads: config['num_threads']['feature_selection']
     script:
         'scripts/select_features.R'
@@ -173,12 +173,12 @@ rule perform_feature_selection:
 #
 rule create_training_set:
     input:
-        rna=join(output_dir, '{dtrans}/{drug}/{cv}/features/filtered/rna.tsv.gz'),
-        cnv=join(output_dir, '{dtrans}/{drug}/{cv}/features/filtered/cnv.tsv.gz'),
-        var=join(output_dir, '{dtrans}/{drug}/{cv}/features/filtered/var.tsv.gz'),
-        response=join(output_dir, '{dtrans}/{drug}/{cv}/response/response.tsv.gz')
+        rna=join(output_dir, '{aggregation}/{drug}/{cv}/features/filtered/rna.tsv.gz'),
+        cnv=join(output_dir, '{aggregation}/{drug}/{cv}/features/filtered/cnv.tsv.gz'),
+        var=join(output_dir, '{aggregation}/{drug}/{cv}/features/filtered/var.tsv.gz'),
+        response=join(output_dir, '{aggregation}/{drug}/{cv}/response/response.tsv.gz')
     output:
-        join(output_dir, '{dtrans}/{drug}/{cv}/training_sets/full/response.tsv.gz')
+        join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/full/response.tsv.gz')
     script:
         'scripts/create_training_set.R'
 
@@ -187,18 +187,18 @@ rule create_training_set:
 # Feature filtering
 #
 rule filter_rna_features:
-    input: join(output_dir, '{dtrans}/{drug}/{cv}/features/rna.tsv.gz')
-    output: join(output_dir, '{dtrans}/{drug}/{cv}/features/filtered/rna.tsv.gz')
+    input: join(output_dir, '{aggregation}/{drug}/{cv}/features/rna.tsv.gz')
+    output: join(output_dir, '{aggregation}/{drug}/{cv}/features/filtered/rna.tsv.gz')
     script: 'scripts/filter_features.R'
 
 rule filter_cnv_features:
-    input: join(output_dir, '{dtrans}/{drug}/{cv}/features/cnv.tsv.gz')
-    output: join(output_dir, '{dtrans}/{drug}/{cv}/features/filtered/cnv.tsv.gz')
+    input: join(output_dir, '{aggregation}/{drug}/{cv}/features/cnv.tsv.gz')
+    output: join(output_dir, '{aggregation}/{drug}/{cv}/features/filtered/cnv.tsv.gz')
     script: 'scripts/filter_features.R'
 
 rule filter_var_features:
-    input: join(output_dir, '{dtrans}/{drug}/{cv}/features/var.tsv.gz') 
-    output: join(output_dir, '{dtrans}/{drug}/{cv}/features/filtered/var.tsv.gz')
+    input: join(output_dir, '{aggregation}/{drug}/{cv}/features/var.tsv.gz') 
+    output: join(output_dir, '{aggregation}/{drug}/{cv}/features/filtered/var.tsv.gz')
     script: 'scripts/filter_features.R'
 
 #
@@ -206,49 +206,49 @@ rule filter_var_features:
 #
 
 rule create_rna_cv_folds:
-    input: join(output_dir, '{dtrans}/{drug}/features/rna.tsv.gz')
-    output: join(output_dir, '{dtrans}/{drug}/{cv}/features/rna.tsv.gz')
+    input: join(output_dir, '{aggregation}/{drug}/features/rna.tsv.gz')
+    output: join(output_dir, '{aggregation}/{drug}/{cv}/features/rna.tsv.gz')
     params:
         cv_folds=cv_folds
     script: 'scripts/create_cv_folds.R'
 
 rule create_cnv_cv_folds:
-    input: join(output_dir, '{dtrans}/{drug}/features/cnv.tsv.gz')
-    output: join(output_dir, '{dtrans}/{drug}/{cv}/features/cnv.tsv.gz')
+    input: join(output_dir, '{aggregation}/{drug}/features/cnv.tsv.gz')
+    output: join(output_dir, '{aggregation}/{drug}/{cv}/features/cnv.tsv.gz')
     params:
         cv_folds=cv_folds
     script: 'scripts/create_cv_folds.R'
 
 rule create_var_cv_folds:
-    input: join(output_dir, '{dtrans}/{drug}/features/var.tsv.gz')
-    output: join(output_dir, '{dtrans}/{drug}/{cv}/features/var.tsv.gz')
+    input: join(output_dir, '{aggregation}/{drug}/features/var.tsv.gz')
+    output: join(output_dir, '{aggregation}/{drug}/{cv}/features/var.tsv.gz')
     params:
         cv_folds=cv_folds
     script: 'scripts/create_cv_folds.R'
 
 rule create_response_folds:
     input: join(input_dir, 'response/{drug}.tsv.gz')
-    output: join(output_dir, '{dtrans}/{drug}/{cv}/response/response.tsv.gz')
+    output: join(output_dir, '{aggregation}/{drug}/{cv}/response/response.tsv.gz')
     params:
         cv_folds=cv_folds
     script: 'scripts/create_cv_folds.R'
 
 #
-# Gene set aggregation (optional)
+# Feature aggregation
 #
-rule project_rna_gene_sets:
+rule aggregate_rna:
     input: join(input_dir, config['features']['rna'])
-    output: join(output_dir, '{dtrans}/{drug}/features/rna.tsv.gz')
-    script: 'scripts/project_gene_sets.R'
+    output: join(output_dir, '{aggregation}/{drug}/features/rna.tsv.gz')
+    script: 'scripts/aggregate_features.R'
 
-rule project_cnv_gene_sets:
+rule aggregate_cnv:
     input: join(input_dir, config['features']['cnv'])
-    output: join(output_dir, '{dtrans}/{drug}/features/cnv.tsv.gz')
-    script: 'scripts/project_gene_sets.R'
+    output: join(output_dir, '{aggregation}/{drug}/features/cnv.tsv.gz')
+    script: 'scripts/aggregate_features.R'
 
-rule project_var_gene_sets:
+rule aggregate_var:
     input: join(input_dir, config['features']['var'])
-    output: join(output_dir, '{dtrans}/{drug}/features/var.tsv.gz')
-    script: 'scripts/project_gene_sets.R'
+    output: join(output_dir, '{aggregation}/{drug}/features/var.tsv.gz')
+    script: 'scripts/aggregate_features.R'
 
 

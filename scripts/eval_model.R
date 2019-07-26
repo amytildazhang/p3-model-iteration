@@ -53,6 +53,11 @@ MODEL <- snakemake@wildcards$model
 # TODO: comment / clean-up syntax per suggestions/conventions in other files... 
 #
 
+#
+# TODO: normalize/combine "model_combinations" and previous "model" config sections in
+# yaml configs
+#
+
 # Choose model to run
 if (MODEL == 'random_forest') {
   # use caret to tune model hyperparameters

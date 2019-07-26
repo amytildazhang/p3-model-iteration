@@ -6,22 +6,6 @@
 name: gdsc
 version: 0.2
 debug: true
-output: '/data/zhangamx/p3-model-iteration/'   # larger directory for output storage
-
-
-#
-# Model specification
-#
-model_combinations:
-  feature_aggregation:
-    - gene_sets
-  feature_selection:
-    - none
-  dimension_reduction:
-    - sparse_pls
-  models:
-    - linear
-    - bimixture
 
 #
 # Computational resources
@@ -32,6 +16,7 @@ num_threads:
   feature_selection: 8
   train_model: 4
   filter_features: 8
+
 #
 # Feature input data
 #
@@ -50,6 +35,20 @@ cross_validation:
   num_repeats: 2
   min_group_size: 5
   random_seed: 801372
+
+#
+# Model specification
+#
+model_combinations:
+  feature_aggregation:
+    - gene_sets
+  feature_selection:
+    - none
+  dimension_reduction:
+    - sparse_pls
+  models:
+    - linear
+    - bimixture
 
 #
 # Model training

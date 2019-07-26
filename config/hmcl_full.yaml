@@ -6,8 +6,6 @@
 name: hmcl
 version: 0.2
 debug: true
-output: '/data/zhangamx/p3-model-iteration/'   # larger directory for output storage
-
 
 #
 # Computational resources
@@ -18,6 +16,7 @@ num_threads:
   feature_selection: 1
   train_model: 4
   filter_features: 12
+
 #
 # Feature input data
 # 

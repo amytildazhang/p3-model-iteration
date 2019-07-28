@@ -30,9 +30,8 @@ if (length(infna_cols) > 0) {
   feat[infna_idx] <- rnorm(length(na_col_ord), mean = mean_vals[na_col_ord], sd = sd_vals[na_col_ord])
 }
 
+METHOD <- snakemake@wildcards$dim_red
 
-
-METHOD <- snakemake@wildcards$dimreduct
 #
 # Sparse PLS
 #

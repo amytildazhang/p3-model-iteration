@@ -6,25 +6,6 @@
 name: gdsc
 version: 0.2
 debug: true
-output: '/data/zhangamx/p3-model-iteration/'   # larger directory for output storage
-
-
-#
-# Pathway aggregation
-#
-
-model_combinations:
-  data_transforms:
-    - gene_set_projected
-    - raw
-  models:
-    - linear
-    - bimixture
-    - horseshoe
-  dim_reducts:
-    - mofa
-  feat_select:
-    - distance
 
 #
 # Computational resources
@@ -35,6 +16,7 @@ num_threads:
   feature_selection: 1
   train_model: 4
   filter_features: 12
+
 #
 # Feature input data
 #
@@ -54,10 +36,26 @@ cross_validation:
   min_group_size: 5
   random_seed: 801372
 
+#
+# Model specification
+#
+model_combinations:
+  feature_aggregation:
+    - gene_sets
+    - raw
+  feature_selection:
+    - distance
+  dimension_reduction:
+    - mofa
+  models:
+    - linear
+    - bimixture
+    - horseshoe
 
-# minimum number of genes required for a gene set to be used for projecing
-# feature data
-gene_set_projection:
+#
+# Feature aggregation
+#
+gene_set_aggregation:
   gene_set_min_size: 5
   aggregation_funcs:
     rna: median
@@ -65,18 +63,9 @@ gene_set_projection:
     var: sum
 
 #
-# Dimension reduction (individual datasets)
+# Dimension reduction
 #
-dimension_reduction_early:
-  pca: 
-    scale: true
-    min_variance: 0.95
-
-#
-
-# Dimension reduction (combined dataset)
-#
-dimension_reduction_late:
+dimension_reduction:
   mofa:
     modeloptions:
       numFactors: 20
@@ -86,7 +75,6 @@ dimension_reduction_late:
       tolerance: 1.0
       DropFactorThreshold: 0.01
       seed: 23827
-
 
 #
 # Feature filtering

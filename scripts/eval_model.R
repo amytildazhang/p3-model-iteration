@@ -34,8 +34,13 @@ set.seed(1)
 # load training set
 dat <- read_tsv(snakemake@input[[1]], col_types = cols())
 
+# column containing sample names
+SAMPLE_IND <- 1
+
+
 # identify test/train dataset membership
-train_idx <- dat[, 2] == 1
+CV_IND <- 2 # column with test/train indicator
+train_idx <- dat[, CV_IND] == 1
 
 # identify whether we're fitting to all data or not
 FIT_FULL <- all(train_idx)
@@ -51,15 +56,6 @@ cnames <- colnames(dat)
 colnames(dat) <- make.names(cnames)
 
 MODEL <- snakemake@wildcards$model
-
-#
-# TODO: comment / clean-up syntax per suggestions/conventions in other files... 
-#
-
-#
-# TODO: normalize/combine "model_combinations" and previous "model" config sections in
-# yaml configs
-#
 
 # Choose model to run
 if (MODEL == 'random_forest') {
@@ -81,24 +77,34 @@ if (MODEL == 'random_forest') {
                num.threads = snakemake@config$num_threads$train_model) %>%
 		fit(response ~ ., data = dat)
 } else {
+
+  
   if (!FIT_FULL) {
-    X_test <- cbind(1, as.matrix(dat[!train_idx, -c(1, 2, y_col)]))
+    # create design matrix for test data; use to calculate model evaluation metrics
+    X_test <- cbind(1, as.matrix(dat[!train_idx, -c(SAMPLE_IND, CV_IND, y_col)]))
   }
+
+  # dimension of features (includes intercept)
   p <- ncol(dat) - 2
 
   if (MODEL == 'linear') {
     if (ncol(dat) > nrow(dat)) {
       stop("Number of features is larger than number of samples--did you mean to run a regularized model?")
     }
-    armfit <- stan_glm(response ~ ., dat[train_idx, -c(1:2)], 
+
+    # fit simple linear model using `rstanarm` package
+    armfit <- stan_glm(response ~ ., dat[train_idx, -c(SAMPLE_IND, CV_IND)], 
+                      # define prior densities
                       family = gaussian(),
                       prior = student_t(3, scale = 10),
                       prior_aux = cauchy(0, 10),
                       prior_intercept = student_t(3, scale = 10))
 
     if (FIT_FULL) {
+      # save stanfit object
       mod <- armfit$stanfit
     } else {
+      # save posterior predictive samples and log(CPO)
       mod <- draw_post.linear(armfit, dat$sample_id[!train_idx], X_test, pull(dat, y_col)[!train_idx])
     }
   } else if (MODEL == 'bimixture') {
@@ -107,38 +113,54 @@ if (MODEL == 'random_forest') {
 
     rstan_options(auto_write = TRUE)
 
+    # create data object to pass to Stan
     stdat <- list(n = sum(train_idx),
                   y = pull(dat, response)[train_idx],
-                  X = cbind(1, as.matrix(dat[train_idx, -c(1:2, y_col)])),
+                  X = cbind(1, as.matrix(dat[train_idx, -c(SAMPLE_IND, CV_IND, y_col)])),
                   p = p)        
+
+    # fit model using defined script; prior/posterior densities defined in script
     stanfit <- stan("scripts/bimixture_pointresp.stan",
                     data = stdat, chains = 4,
                     pars = c("B", "mu", "sigma"), 
                     control = list(adapt_delta = 0.95, max_treedepth = 20))
 
     if (FIT_FULL) {
+      # save stanfit object
       mod <- stanfit
     } else {
+      # save posterior predictive samples and log(CPO)
       mod  <- draw_post.bimodal(stanfit, dat$sample_id[!train_idx], X_test, deframe(dat[!train_idx, y_col]))
     }
   } else if (MODEL == 'horseshoe') {
     # recommend for unsupervised dimension reduction methods 
-    p0 <- ifelse(p < 4, ceiling(p/2), 4) # wild guess for number of relevant covariates
-    tau0 <- p0/(p - p0) * 1/sqrt(sum(train_idx))
-    armfit <- stan_glm(response ~ ., dat[train_idx, -c(1:2)],
+    # places a Finnish horseshoe prior on all features
+    
+    EFF_FEATURES_GUESS <- 4  # estimate for number of relevant covariates
+    p0 <- ifelse(p < EFF_FEATURES_GUESS, ceiling(p/2), EFF_FEATURES_GUESS)  
+    # prior parameter based on estimate for number of relevant covarites
+    tau0 <- p0/(p - p0) * 1/sqrt(sum(train_idx)) # 
+    
+
+    # fit model
+    armfit <- stan_glm(response ~ ., dat[train_idx, -c(SAMPLE_IND, CV_IND)],
+                      # define prior densities
                        family = gaussian(),
                        prior = hs(df=1, global_df=1, global_scale = tau0),
                        prior_aux = cauchy(0, 10),
                        prior_intercept = student_t(3, scale = 10))
+
     if (FIT_FULL) {
+      # save stanfit object
       mod <- armfit$stanfit
     } else {
+      # save posterior predictive samples and log(CPO)
       mod <- draw_post.linear(armfit, dat$sample_id[!train_idx], X_test, pull(dat, y_col)[!train_idx])
     }
   }
 }
 
-# store result
+# store result, either as stanfit object or posterior predictive samples
 if (FIT_FULL) {
   saveRDS(mod, snakemake@output[[1]])
 } else {

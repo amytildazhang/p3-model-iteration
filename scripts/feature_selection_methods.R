@@ -3,7 +3,7 @@
 #
 # - Boruta
 # - RFE/RF
-#
+# - Distance correlation
 
 #
 # Boruta
@@ -100,6 +100,46 @@ rfe_feature_selection <- function(dat, snakemake) {
     # otherwise, return selected features
     features <- head(rfe_res$optVariables, num_features)
   }
+
+  features
+}
+
+
+#
+# Distance correlation
+#
+dcor_feature_selection <- function(dat, snakemake) {
+  library(snow) 
+
+  # Distance correlation -- measures dependence, not necessarily linear 
+  # (Li, Zhong, Zhu 2012 JASA)
+  Y <- dat[, ncol(dat)]
+
+  # create parallelization cluster instance
+  cl <- makeCluster(snakemake@threads)
+
+  clusterCall(cl, function() { library(energy) })
+  clusterExport(cl, list("Y", "dat"))
+
+  # start and end indices within dat to calculate distance correlation for
+  FEAT_START_IND <- 1
+  FEAT_END_IND <- ncol(dat) - 1
+
+  # numeric vector of values [0, 1], where 0 indicates independence between
+  # two random variables
+  dist_cors <- parSapply(cl, FEAT_START_IND:FEAT_END_IND, function(j) {
+    dcor(pull(dat, j), Y)
+  })
+
+  stopCluster(cl)
+
+  # Li, Zhong, Zhu 2012 JASA prove all features in the true model have dcor > c
+  # but c is an unknown value based on sample and feature size
+  # Alternatively choose the top p/log(p) features most correlated with response
+  num_feats <- length(dist_cors)
+  min_val <- abs(sort(-dist_cors)[round(num_feats / log(num_feats))])
+
+  features <- colnames(dat)[dist_cors >= min_val]
 
   features
 }

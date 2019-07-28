@@ -78,7 +78,9 @@ if (METHOD == 'sparse_pls') {
     # create MOFA object
     MOFAobj <- createMOFAobject(view_mats)
 
+    # pull MoFA settings from the config file
     mofa_sets <- snakemake@config$dimension_reduction_late$mofa
+    
     # MoFA settings: number of factors, thresholds, iterations, seed
     ModelOptions <- getDefaultModelOptions(MOFAobj)
     for (opt in names(mofa_sets$modeloptions)) ModelOptions[[opt]] <- mofa_sets$modeloptions[[opt]]
@@ -88,8 +90,7 @@ if (METHOD == 'sparse_pls') {
     for (opt in names(mofa_sets$trainoptions)) TrainOptions[[opt]] <- mofa_sets$trainoptions[[opt]]
 
     # run MoFA
-    MOFAobj <- prepareMOFA(MOFAobj, ModelOptions = ModelOptions,
-                       TrainOptions = TrainOptions)
+    MOFAobj <- prepareMOFA(MOFAobj, ModelOptions = ModelOptions, TrainOptions = TrainOptions)
     MOFAobj <- runMOFA(MOFAobj)
 
     # use latent factors as features

@@ -109,9 +109,9 @@ if (MODEL == 'random_forest') {
     }
   } else if (MODEL == 'bimixture') {
     library(rstan)
-    options(mc.cores = parallel::detectCores())
 
-    rstan_options(auto_write = TRUE)
+    options(mc.cores = parallel::detectCores()) # parallelization
+    rstan_options(auto_write = TRUE) # save compiled stan model; saves time
 
     # create data object to pass to Stan
     stdat <- list(n = sum(train_idx),
@@ -138,6 +138,7 @@ if (MODEL == 'random_forest') {
     
     EFF_FEATURES_GUESS <- 4  # estimate for number of relevant covariates
     p0 <- ifelse(p < EFF_FEATURES_GUESS, ceiling(p/2), EFF_FEATURES_GUESS)  
+   
     # prior parameter based on estimate for number of relevant covarites
     tau0 <- p0/(p - p0) * 1/sqrt(sum(train_idx)) # 
     

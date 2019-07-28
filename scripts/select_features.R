@@ -73,6 +73,9 @@ if (length(features) < snakemake@config$feature_selection$min_features) {
   } else if (snakemake@config$feature_selection$fallback == 'rfe') {
     # fallback: rfe
     features <- rfe_feature_selection(dat[train_indices, -c(CV_IND, SAMPLE_IND)], snakemake) 
+  } else if (snakemake@config$feature_selection$fallback == 'distance') {
+    # fallback: rfe
+    features <- dcor_feature_selection(dat[train_indices, -c(CV_IND, SAMPLE_IND)], snakemake)
   } else if (snakemake@config$feature_selection$fallback == 'none') {
     # if the feature selection method is set to "none", we can stop here and
     # simply return the full dataset

@@ -50,12 +50,6 @@ model_combinations:
     - linear
     - bimixture
 
-#
-# Model training
-#
-model:
-  method: 'random_forest'
-  num_trees: 25000
 
 #
 # Feature aggregation

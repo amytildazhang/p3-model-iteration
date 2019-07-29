@@ -14,6 +14,10 @@ data_type <- strsplit(snakemake@rule, '_')[[1]][2]
 # load feature data
 dat <- read_tsv(snakemake@input[[1]], col_types = cols())
 
+
+# remove duplicated features, based on name in column 1
+dat <- dat[!duplicated(pull(dat, 1)), ]
+
 #
 # RAW (no data transformation applied)
 #

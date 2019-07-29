@@ -1,4 +1,3 @@
-#!/bin/env Rscript
 #
 # Apply dimension reduction to the combined training set
 #
@@ -20,8 +19,7 @@ Y_COL <- which(colnames(dat) == "response")
 y <- pull(dat, Y_COL)
 
 # create feature matrix
-feat <- as.matrix(dat[,-c(SAMPLE_IND,CV_IND,Y_COL)])
-
+feat <- as.matrix(dat[, -c(SAMPLE_IND, CV_IND, Y_COL)])
 
 # impute NA and infinite values
 # Unfortunately there is no "infinite.rm = T" option, so ID those manually
@@ -31,8 +29,8 @@ infna_rows <- row(feat)[infna_idx]
 
 if (length(infna_cols) > 0) {
   # get mean and sd of non NA/infinite values in each column
-  mean_vals <- sapply(unique(infna_cols), function(j) mean(feat[-infna_rows[infna_cols == j],j], na.rm = T))
-  sd_vals <- sapply(unique(infna_cols), function(j) sd(feat[-infna_rows[infna_cols == j],j], na.rm = T))
+  mean_vals <- sapply(unique(infna_cols), function(j) mean(feat[-infna_rows[infna_cols == j], j], na.rm = T))
+  sd_vals <- sapply(unique(infna_cols), function(j) sd(feat[-infna_rows[infna_cols == j], j], na.rm = T))
 
   # identify which column in mean_vals/sd_vals each missing/infinite val belongs to
   na_col_ord <- as.numeric(as.factor(infna_cols))
@@ -50,7 +48,6 @@ if (METHOD == 'sparse_pls') {
   library(spls)
   set.seed(2897)
 
-
   # columns with too many zeros can end up having zero variance in the inner CV, which makes SPLS unhappy
   # define lower bound for number of non-zero entries
   MIN_NONZERO_PERC <- 0.2
@@ -60,14 +57,27 @@ if (METHOD == 'sparse_pls') {
     message(paste0("Excluding ", sum(zero_fvars), " features with large number of 0s."))
     feat <- feat[, !zero_fvars]
   }
-
   # Select number of components and sparsity penalization (eta) by cross-validation
+
+  # TODO: MAGIC NUMS / MOVE TO CONFIG?
+  #
+  # NOTE: This step sometimes fails with an error message: 
+  #
+  #   Error in spls(x[-omit, , drop = FALSE], y[-omit, , drop = FALSE], eta = eta[i],  : 
+  #     Some of the columns of the predictor matrix have zero variance.
+  #   Calls: cv.spls -> spls
+  #
+  # This happens even when the input features have all >0 variance columns.
+  # Guessing that the issue occurs when some samples are removed during CV, leading to
+  # zero variance features... not sure what the best approach is here, but perhaps
+  # either filter out features with mostly zero values / apply a slightly more
+  # aggressive variance cutoff (e.g. 0.5 or 1 instead of 0)?
   cv_chs <- cv.spls(feat[train_idx, ], y[train_idx],
-                 eta = c(seq(0.3, 0.7, by = 0.1), 0.75),  K = c(1:10), fold = 10)
+                    eta = c(seq(0.3, 0.7, by = 0.1), 0.75),  K = c(1:10), fold = 10)
 
   # Fit sparse PLS using selected number of components and eta
   spfit <- spls(feat[train_idx, ], y[train_idx], eta = cv_chs$eta.opt, K = cv_chs$K.opt)
-  
+
   # Project entire feature matrix onto principal components
   selected <- rownames(spfit$projection)
   latent_feats <- feat[,selected] %*% spfit$projection
@@ -79,6 +89,9 @@ if (METHOD == 'sparse_pls') {
   write_tsv(as.data.frame(projection), snakemake@output[[2]])
 
 } else if (METHOD == 'mofa') {
+  #
+  # MoFA
+  #
   library(MOFA)
 
   # pull out sample names 
@@ -130,4 +143,4 @@ if (METHOD == 'sparse_pls') {
 }
 
 # save latent features (sample x factor)
-write_tsv(as.data.frame(cbind(dat[,c(SAMPLE_IND,CV_IND,ncol(dat))], latent_feats)), snakemake@output[[1]])
+write_tsv(as.data.frame(cbind(dat[, c(SAMPLE_IND, CV_IND, ncol(dat))], latent_feats)), snakemake@output[[1]])

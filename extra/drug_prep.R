@@ -5,11 +5,11 @@ options(stringsAsFactors = FALSE)
 data_dir <- '/data/projects/nih/p3/drug_response/curves/1.2' 
 output_dir <- '/data/projects/nih/p3-models/data/raw/response'
 
-target_drugs <- c('Adenosine', 'Aminopterin', 'CGS-21680', 'Cyproheptadine hydrochloride', 
-                  'Embelin', 'EMD-1214063', 'Finasteride', 'Flutamide',
-                  'GM-6001', 'Mubritinib', 'PD-173955 Analogue 1', 'RGB-286147',
-                  'SB-505124', 'Secoisolariciresinol', 'Shikonin', 'Vinflunine',
-                  'WHI-P97', 'WZ-4002')
+target_drugs <- c('A-443654', 'Adenosine', 'Aminopterin', 'CGS-21680', 
+                  'Cyproheptadine hydrochloride', 'Embelin', 'EMD-1214063', 'Finasteride',
+                  'Flutamide', 'GM-6001', 'Mubritinib', 'PD-173955 Analogue 1',
+                  'RGB-286147', 'SB-505124', 'Secoisolariciresinol', 'Shikonin',
+                  'Vinflunine', 'WHI-P97', 'WZ-4002')
 
 exclude_cells <- c('KMS21BM_JCRB', 'Karpas417_ECACC', 'OCIMY1_PLB', 'OPM2_DSMZ')
 

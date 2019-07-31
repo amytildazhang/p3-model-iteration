@@ -3,7 +3,7 @@
 #
 # - Boruta
 # - RFE/RF
-#
+# - Distance correlation
 
 #
 # Boruta
@@ -100,6 +100,78 @@ rfe_feature_selection <- function(dat, snakemake) {
     # otherwise, return selected features
     features <- head(rfe_res$optVariables, num_features)
   }
+
+  features
+}
+
+
+#
+# Distance correlation
+#
+
+#'
+#' Returns the p/log(p) features most correlated with the response, based on
+#' distance correlation. 
+#' --------
+#'
+#' Distance correlation (DC) is 0 only if two random variables are independent and is based on 
+#' Euclidean distances between samples rather than moments (Szekely, Rizzo, Bakirov 2007). It is
+#' also a strictly increasing function of Pearson correlation.
+#' 
+#' Li, Zhong, Zhu (2012) prove all features in the true model have DC greater than some threshold 
+#' \code{c}, but \code{c} is an unknown value based on sample and feature size. A suggested alternative is to choose the top \code{n}
+#' features based on distance correlation.Their DC sure independence screening (DC-SIS) method
+#' can handle both multivariate response and grouped predictors and is a model-free SIS procedure.
+#'
+#' 
+#' Parameters
+#' ----------
+#'
+#' @param dat A dataframe containing features and response in the last column.
+#' @param snakemake \code{snakemake} object containing number of threads for parallelization.
+#'
+#' Returns
+#' -------
+#'
+#' @return A character vector of feature names with the highest distance correlations to the response. 
+#'
+#' References
+#' ----------
+#' 1. Székely, Gábor J., Maria L. Rizzo, and Nail K. Bakirov. "Measuring and testing dependence
+#' by correlation of distances." The Annals of Statistics 35.6 (2007): 2769-2794.
+#' 2. Li, Runze, Wei Zhong, and Liping Zhu. "Feature screening via distance correlation learning."
+#' Journal of the American Statistical Association 107.499 (2012): 1129-1139. #'
+dcor_feature_selection <- function(dat, snakemake) {
+  library(snow) # manages parallelization
+
+  # pull out response
+  Y <- dat[, ncol(dat)]
+
+  # create parallelization cluster instance
+  cl <- makeCluster(snakemake@threads)
+
+  # load library and export objects to worker nodes
+  clusterCall(cl, function() { library(energy) })
+  clusterExport(cl, list("Y", "dat"))
+
+  # start and end indices within dat to calculate distance correlation for
+  FEAT_START_IND <- 1
+  FEAT_END_IND <- ncol(dat) - 1
+
+  # numeric vector of values [0, 1], where 0 indicates independence between
+  # two random variables
+  dist_cors <- parSapply(cl, FEAT_START_IND:FEAT_END_IND, function(j) {
+    dcor(pull(dat, j), Y)
+  })
+
+  # 
+  stopCluster(cl)
+
+  # set lower bound for DC based on the DC for the p/log(p)th feature
+  num_feats <- length(dist_cors)
+  min_val <- abs(sort(-dist_cors)[round(num_feats / log(num_feats))])
+
+  features <- colnames(dat)[dist_cors >= min_val]
 
   features
 }

@@ -6,8 +6,6 @@
 name: hmcl
 version: 0.2
 debug: true
-output: '/data/zhangamx/p3-model-iteration/'   # larger directory for output storage
-
 
 #
 # Computational resources
@@ -18,6 +16,7 @@ num_threads:
   feature_selection: 8
   train_model: 4
   filter_features: 12
+
 #
 # Feature input data
 # 
@@ -38,30 +37,25 @@ cross_validation:
   random_seed: 801372
 
 #
-# Model training
+# Model specification
 #
-
-#
-# Pathway aggregation
-#
-
 model_combinations:
-  data_transforms:
-    - gene_set_projected
+  feature_aggregation:
+    - gene_sets
     - raw
+  feature_selection:
+    - none
+  dimension_reduction:
+    - sparse_pls
   models:
     - linear
     - bimixture
-  dim_reducts:
-    - sparse_pls
-  feat_select:
-    - none
 
 
-# minimum number of genes required for a gene set to be used for projecing
-# feature data
-gene_set_projection:
-  enabled: true
+#
+# Feature aggregation
+#
+gene_set_aggregation:
   gene_set_min_size: 5
   aggregation_funcs:
     rna: median
@@ -69,19 +63,9 @@ gene_set_projection:
     var: sum
 
 #
-# Dimension reduction (individual datasets)
+# Dimension reduction
 #
-dimension_reduction_early:
-  enabled: false
-  method: pca
-  scale: true
-  min_variance: 0.95
-
-#
-
-# Dimension reduction (combined dataset)
-#
-dimension_reduction_late:
+dimension_reduction:
   mofa:
     modeloptions:
       numFactors: 20

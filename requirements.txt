@@ -8,6 +8,7 @@ bioconductor-gseabase
 bioconductor-rhdf5lib
 bioconductor-pharmacogx
 conda-forge::r-base=3.5.1
+r-annotables
 r-biocmanager
 r-boruta
 r-caret
@@ -28,3 +29,4 @@ r-rstantools
 r-snow
 r-spls
 r-umap
+r-wgcna

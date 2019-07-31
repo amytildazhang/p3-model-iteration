@@ -36,8 +36,7 @@ for (data_type in data_types) {
 shared_sample_ids <- Reduce(intersect, lapply(dsets, function(x) { colnames(x)[-1] }))
 
 # separate out the CV fold indicator
-CV_ind <- dsets[[1]][1,]
-
+cv_mask <- dsets[[1]][1, ]
 
 # normalize columns across feature datasets
 for (dset in names(dsets)) {
@@ -46,7 +45,7 @@ for (dset in names(dsets)) {
 }
 
 # combine features
-combined_dat <- bind_rows(CV_ind[c(id_col, shared_sample_ids)], dsets)
+combined_dat <- bind_rows(cv_mask[c(id_col, shared_sample_ids)], dsets)
 
 # transpose data and set column names to feature ids
 feat_ids <- as.data.frame(combined_dat)[, 1]

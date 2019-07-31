@@ -13,7 +13,6 @@ dat <- read_tsv(snakemake@input[[1]], col_types = cols())
 # drop sample ids and convert to a data frame
 dat <- as.data.frame(dat)
 sample_ids <- dat[, 1]
-#dat <- dat[, -1]
 
 # drop samples with missing response values
 dat <- dat[!is.na(dat$response), ]
@@ -33,39 +32,22 @@ if (nrow(dat) <= snakemake@config$feature_selection$min_features) {
   quit(save = 'no')
 }
 
+# non-feature column indices
+CV_IND <- 1
+SAMPLE_IND <- 2 
+
 # separate out CV indicator
-CV_ind <- dat[,1]
-train_idx <- CV_ind == 1
+train_indices <- dat[, CV_IND] == 1
 
 METHOD <- snakemake@wildcards$feat
 
-
 # perform feature selection (first attempt)
 if (METHOD == 'boruta') {
-  features <- boruta_feature_selection(dat[train_idx,-c(1,2)], snakemake) 
+  features <- boruta_feature_selection(dat[train_indices, -c(CV_IND, SAMPLE_IND)], snakemake) 
 } else if (METHOD == 'rfe') {
-  features <- rfe_feature_selection(dat[train_idx,-c(1,2)], snakemake) 
+  features <- rfe_feature_selection(dat[train_indices, -c(CV_IND, SAMPLE_IND)], snakemake) 
 } else if (METHOD == 'distance') {
-   # Distance correlation -- measures dependence, not necessarily linear (Li, Zhong, Zhu 2012 JASA)
-   Y <- dat[, ncol(dat)]
-
-   library(snow) # set up parallelization of distance correlation calculation
-   cl <- makeCluster(snakemake@threads)
-   clusterCall(cl, function(x) {library(energy); library(tidyverse)})
-   clusterExport(cl, list("Y", "dat"))
-
-    # get distance correlations
-    dist_cors <- parSapply(cl, 3:(ncol(dat) - 1), function(j) {
-        dcor(pull(dat, j), Y)
-    })
-   stopCluster(cl)
-
-    # choose the top p/log(p) features
-    p <- ncol(dat) - 2
-    min_val <- abs(sort(-dist_cors)[round(p/log(p))])
-
-    features <- colnames(dat)[dist_cors >= min_val]
- 
+  features <- dcor_feature_selection(dat[train_indices, -c(CV_IND, SAMPLE_IND)], snakemake)
 }  else if (METHOD == 'none') {
   # if the feature selection method is set to "none", we can stop here and
   # simply return the full dataset
@@ -78,7 +60,6 @@ if (METHOD == 'boruta') {
 message(sprintf("Found %d features during first round of selection using %s...",
                 length(features),
                 snakemake@config$feature_selection$method))
-
 print(features)
 
 # if too few features found, attempt fallback method
@@ -88,10 +69,13 @@ if (length(features) < snakemake@config$feature_selection$min_features) {
                   snakemake@config$feature_selection$fallback))
   # fallback: boruta
   if (snakemake@config$feature_selection$fallback == 'boruta') {
-    features <- boruta_feature_selection(dat[train_idx, -c(1,2)], snakemake) 
+    features <- boruta_feature_selection(dat[train_indices, -c(CV_IND, SAMPLE_IND)], snakemake) 
   } else if (snakemake@config$feature_selection$fallback == 'rfe') {
     # fallback: rfe
-    features <- rfe_feature_selection(dat[train_idx, -c(1,2)], snakemake) 
+    features <- rfe_feature_selection(dat[train_indices, -c(CV_IND, SAMPLE_IND)], snakemake) 
+  } else if (snakemake@config$feature_selection$fallback == 'distance') {
+    # fallback: rfe
+    features <- dcor_feature_selection(dat[train_indices, -c(CV_IND, SAMPLE_IND)], snakemake)
   } else if (snakemake@config$feature_selection$fallback == 'none') {
     # if the feature selection method is set to "none", we can stop here and
     # simply return the full dataset
@@ -107,7 +91,7 @@ if (length(features) < snakemake@config$feature_selection$min_features) {
 }
 
 # remove unselected features
-dat <- dat[, colnames(dat) %in% c('sample_id', 'symbol', 'train_idx', features, 'response')]
+dat <- dat[, colnames(dat) %in% c('sample_id', 'symbol', 'train_indices', features, 'response')]
 
 # store result
 write_tsv(dat, snakemake@output[[1]])

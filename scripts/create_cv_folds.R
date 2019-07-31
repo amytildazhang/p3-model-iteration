@@ -10,6 +10,9 @@ options(stringsAsFactors = FALSE)
 # load feature data
 dat <- read_tsv(snakemake@input[[1]], col_types = cols())
 
+
+dat <- dat[!duplicated(pull(dat, 1)), ]
+
 # get train and test set cv fold indices
 if (snakemake@wildcards$cv == "alldata") {
   # if "all" specified, there is only a training set including all observations
@@ -33,7 +36,7 @@ ID_COL_OFFSET <- 1
 R_INDEX_OFFSET <- 1
 
 # create a binary indicator variable to indicate test/train fold membership
-train_ind <- as.numeric(2:ncol(dat) %in% (cv_fold$train + ID_COL_OFFSET + R_INDEX_OFFSET))
+train_ind <- as.numeric((2:ncol(dat) %in% (cv_fold$train + ID_COL_OFFSET + R_INDEX_OFFSET)))
 
 # save indicator var as first row of data frame
 dat_cv <- cbind(symbol = c("train_idx", pull(dat, 1)), 

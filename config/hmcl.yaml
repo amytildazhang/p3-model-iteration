@@ -4,7 +4,7 @@
 #
 ################################################################################
 name: hmcl
-version: 0.2
+version: 0.3
 debug: true
 
 #
@@ -31,10 +31,8 @@ features:
 
 # parameters to use for outer repeated cross validation
 cross_validation:
-  num_splits: 8
-  num_repeats: 2
-  min_group_size: 5
-  random_seed: 801372
+  - 'loo'
+  #random_seed: 801372
 
 #
 # Model specification

@@ -4,7 +4,7 @@
 #
 ################################################################################
 name: hmcl
-version: 0.2
+version: 0.3
 debug: true
 
 #
@@ -31,10 +31,7 @@ features:
 
 # parameters to use for outer repeated cross validation
 cross_validation:
-  num_splits: 1
-  num_repeats: 1
-  min_group_size: 5
-  random_seed: 801372
+  - alldata
 
 #
 # Model specification
@@ -46,9 +43,10 @@ model_combinations:
   feature_selection:
     - distance
   dimension_reduction:
-    - mofa
+    - sparse_pls
   models:
-    - horseshoe
+    - linear
+    - bimixture 
 
 
 #

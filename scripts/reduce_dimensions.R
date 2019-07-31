@@ -12,7 +12,7 @@ SAMPLE_IND <- 1
 CV_IND <- 2
 
 # separate out cross-validation indicator and identify the train set
-train_idx <- pull(dat, SAMPLE_IND) == 1
+train_idx <- pull(dat, CV_IND) == 1
 
 # pull out response
 Y_COL <- which(colnames(dat) == "response")
@@ -50,7 +50,7 @@ if (METHOD == 'sparse_pls') {
 
   # columns with too many zeros can end up having zero variance in the inner CV, which makes SPLS unhappy
   # define lower bound for number of non-zero entries
-  MIN_NONZERO_PERC <- 0.2
+  MIN_NONZERO_PERC <- 0.35
 
   zero_fvars <- apply(feat[train_idx,], 2, function(col) sum(col != 0))/sum(train_idx) <= MIN_NONZERO_PERC
   if (sum(zero_fvars) > 0) {

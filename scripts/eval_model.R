@@ -104,7 +104,7 @@ if (MODEL == 'random_forest') {
       mod <- armfit$stanfit
     } else {
       # save posterior predictive samples and log(CPO)
-      mod <- draw_post.linear(armfit, dat$sample_id[!train_idx], X_test, pull(dat, y_col)[!train_idx])
+      mod <- draw_post_linear(armfit, dat$sample_id[!train_idx], X_test, pull(dat, y_col)[!train_idx])
     }
   } else if (MODEL == 'bimixture') {
     library(rstan)
@@ -129,7 +129,7 @@ if (MODEL == 'random_forest') {
       mod <- stanfit
     } else {
       # save posterior predictive samples and log(CPO)
-      mod  <- draw_post.bimodal(stanfit, dat$sample_id[!train_idx], X_test, deframe(dat[!train_idx, y_col]))
+      mod  <- draw_post_bimodal(stanfit, dat$sample_id[!train_idx], X_test, deframe(dat[!train_idx, y_col]))
     }
   } else if (MODEL == 'horseshoe') {
     # recommend for unsupervised dimension reduction methods 
@@ -155,7 +155,7 @@ if (MODEL == 'random_forest') {
       mod <- armfit$stanfit
     } else {
       # save posterior predictive samples and log(CPO)
-      mod <- draw_post.linear(armfit, dat$sample_id[!train_idx], X_test, pull(dat, y_col)[!train_idx])
+      mod <- draw_post_linear(armfit, dat$sample_id[!train_idx], X_test, pull(dat, y_col)[!train_idx])
     }
   }
 }

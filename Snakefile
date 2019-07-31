@@ -41,7 +41,7 @@ drug_names = [x.replace('.tsv.gz', '') for x in response_files]
 #
 # Cross-validation setup
 #
-if config['cross_validation']['num_splits'] == 1:
+if 'alldata' in config['cross_validation']:
     #
     # No cross-validation
     #
@@ -49,69 +49,93 @@ if config['cross_validation']['num_splits'] == 1:
     cv_indices = ["alldata"]
     model_save = "rds"
 else:
-    #
-    # Stratified Repeated cross validation
-    #
     model_save = "tsv.gz"
+    if 'loo' in config['cross_validation']:
+        # 
+        # Leave-one-out cross-validaton
+        #
+        cv_folds = {}
+        max_n = 0
+ 
+        for response_file in response_files:
+            response = pd.read_csv(join(input_dir, 'response', response_file), sep='\t')
+            
+            num_folds = response.shape[1] - 1
+            idxes = set(range(num_folds))
+    
+            if max_n < num_folds:
+                max_n = num_folds
 
-    rskf = RepeatedStratifiedKFold(n_splits=config['cross_validation']['num_splits'],
-                                   n_repeats=config['cross_validation']['num_repeats'],
+            drug_folds = {'{0:02d}'.format(x + 1): {'test': x, 'train': list(idxes - set([x])) } for x in list(idxes)}
+    
+            # list of sequential numbers equal to the total number of folds to be tested;
+            # used to let snakemake know what files are to be expected
+            cv_folds[response_file.replace('.tsv.gz', '')] = drug_folds
+
+        cv_indices = ['{0:02d}'.format(x + 1) for x in list(range(max_n))]
+    else:
+        #
+        # Stratified Repeated cross validation
+        #
+        rskf = RepeatedStratifiedKFold(n_splits=config['cross_validation']['num_splits'],
                                    random_state=config['cross_validation']['random_seed'])
 
-    # create a response-index dict to store CV indices
-    cv_folds = {}
+        n_repeats=config['cross_validation']['num_repeats'],
 
-    # for each drug, cluster response data into two groups, if possible, and use to
-    # generate balanced (stratefied) CV splits
-    for response_file in response_files:
-        # load response data and convert to an n x 1 array
-        response = pd.read_csv(join(input_dir, 'response', response_file), sep='\t')
-        arr = response.iloc[0, 1:].to_numpy()
-        dat = arr.reshape(-1, 1)
-
-        # perform kmeans clustering
-        clusters = KMeans(n_clusters=2, random_state=0).fit(dat).labels_
-
-        # if too few clusters are found, use extremes instead
-        group_sizes = np.bincount(clusters)
-
-        # group_sizes     
-        # array([29, 14])
-
-        min_group_size = config['cross_validation']['min_group_size']
-
-        if min(group_sizes) < min_group_size:
-            # determine which group is associated with lower values
-            if np.mean(dat[clusters == 0]) < np.mean(dat[clusters == 1]):
-                small_value_group = 0
-            else:
-                small_value_group = 1
-            
-            # determine which group is smaller, and extend it to the minimum size
-            if ((group_sizes[0] <= group_sizes[1] and small_value_group == 0) or 
-                (group_sizes[1] <= group_sizes[0] and small_value_group == 1)):
-                # if smaller group contains the lower values, extend to the N smallest values
-                index = arr.argsort()[:min_group_size]
-            else:
-                # otherwise, if smaller group contains the higher values, extend to
-                # the N largest values
-                index = arr.argsort()[-min_group_size:]
-
-            clusters = np.zeros(len(clusters), dtype=np.int8)
-            clusters[index] = 1
-
-        # store CV fold indices
-        drug_folds = rskf.split(range(samples.shape[0]), clusters)
-
-        # convert from list of tuples to a nested dict for better snakemake/R compatibility
-        drug_folds = {'{0:02d}'.format(i + 1): { 'train': x[0], 'test': x[1] } for i, x in enumerate(drug_folds)}
-
-        # list of sequential numbers equal to the total number of folds to be tested;
-        # used to let snakemake know what files are to be expected
-        num_folds = config['cross_validation']['num_splits'] * config['cross_validation']['num_repeats']
-        cv_indices = [f'{x:02}' for x in list(range(1, num_folds + 1))]
-
-        cv_folds[response_file.replace('.tsv.gz', '')] = drug_folds
+        # create a response-index dict to store CV indices
+        cv_folds = {}
+    
+        # for each drug, cluster response data into two groups, if possible, and use to
+        # generate balanced (stratefied) CV splits
+        for response_file in response_files:
+            # load response data and convert to an n x 1 array
+            response = pd.read_csv(join(input_dir, 'response', response_file), sep='\t')
+            arr = response.iloc[0, 1:].to_numpy()
+            dat = arr.reshape(-1, 1)
+    
+            # perform kmeans clustering
+            clusters = KMeans(n_clusters=2, random_state=0).fit(dat).labels_
+    
+            # if too few clusters are found, use extremes instead
+            group_sizes = np.bincount(clusters)
+    
+            # group_sizes     
+            # array([29, 14])
+    
+            min_group_size = config['cross_validation']['min_group_size']
+    
+            if min(group_sizes) < min_group_size:
+                # determine which group is associated with lower values
+                if np.mean(dat[clusters == 0]) < np.mean(dat[clusters == 1]):
+                    small_value_group = 0
+                else:
+                    small_value_group = 1
+                
+                # determine which group is smaller, and extend it to the minimum size
+                if ((group_sizes[0] <= group_sizes[1] and small_value_group == 0) or 
+                    (group_sizes[1] <= group_sizes[0] and small_value_group == 1)):
+                    # if smaller group contains the lower values, extend to the N smallest values
+                    index = arr.argsort()[:min_group_size]
+                else:
+                    # otherwise, if smaller group contains the higher values, extend to
+                    # the N largest values
+                    index = arr.argsort()[-min_group_size:]
+    
+                clusters = np.zeros(len(clusters), dtype=np.int8)
+                clusters[index] = 1
+    
+            # store CV fold indices
+            drug_folds = rskf.split(range(samples.shape[0]), clusters)
+    
+            # convert from list of tuples to a nested dict for better snakemake/R compatibility
+            drug_folds = {'{0:02d}'.format(i + 1): { 'train': x[0], 'test': x[1] } for i, x in enumerate(drug_folds)}
+    
+            # list of sequential numbers equal to the total number of folds to be tested;
+            # used to let snakemake know what files are to be expected
+            num_folds = config['cross_validation']['num_splits'] * config['cross_validation']['num_repeats']
+            cv_indices = [f'{x:02}' for x in list(range(1, num_folds + 1))]
+    
+            cv_folds[response_file.replace('.tsv.gz', '')] = drug_folds
 
 # specify which rules are run locally
 localrules: all, 

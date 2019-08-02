@@ -36,7 +36,14 @@ samples = pd.read_csv(join(input_dir, 'metadata', 'samples.tsv'), sep='\t')
 
 # drug response input files
 response_files = [Path(x).name for x in glob.glob(join(input_dir, 'response/*.tsv.gz'))]
+
+# TEMPORARY reduction in response/drugs considered
+response_files = [response_files[i] for i in list(range(8))]
+
+ 
 drug_names = [x.replace('.tsv.gz', '') for x in response_files] 
+
+
 
 #
 # Cross-validation setup
@@ -150,6 +157,9 @@ feature_aggregation = config['model_combinations']['feature_aggregation']
 feature_selection   = config['model_combinations']['feature_selection']
 dimension_reduction = config['model_combinations']['dimension_reduction']
 models              = config['model_combinations']['models']
+dimred_methods = [method for method in dimension_reduction if method != 'none']
+
+
 
 # specify format of wildcards to prevent ambiguous file names
 wildcard_constraints:
@@ -170,9 +180,16 @@ rule all:
 #
 # Model training
 #
+IN_FOLDER = {
+  **{'none': 'selected'},
+  **{dim_red: 'dimension_reduced/{dim_red}' for dim_red in dimred_methods}
+}
 
 rule evaluate_model:
-    input: join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/dimension_reduced/{dim_red}/{feat}/response.tsv.gz')
+    input: 
+        lambda wildcards: 
+            join(output_dir, 
+                '{{aggregation}}/{{drug}}/{{cv}}/training_sets/{}/{{feat}}/response.tsv.gz').format(IN_FOLDER[wildcards.dim_red])
     output: join(output_dir, '{{aggregation}}/{{drug}}/{{cv}}/models/{{feat}}/{{dim_red}}/{{model}}.{}'.format(model_save))
     threads: config['num_threads']['train_model']
     script: 'scripts/eval_model.R'
@@ -180,11 +197,13 @@ rule evaluate_model:
 #
 # Dimension reduction
 #
+
 rule reduce_training_set_dimension:
     input: join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/selected/{feat}/response.tsv.gz')
-    output: 
-        join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/dimension_reduced/{dim_red}/{feat}/response.tsv.gz'),
-        join(output_dir, '{aggregation}/{drug}/{cv}/training_sets/dimension_reduced/{dim_red}/{feat}/extra.tsv.gz') 
+    output:  
+        expand(join(output_dir, 
+          '{{aggregation}}/{{drug}}/{{cv}}/training_sets/dimension_reduced/{rdimred}/{{feat}}/{outfile}.tsv.gz'), 
+          rdimred = dimred_methods, outfile = ['response', 'extra'])
     script: 'scripts/reduce_dimensions.R'
 
 #

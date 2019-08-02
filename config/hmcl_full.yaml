@@ -43,10 +43,9 @@ model_combinations:
   feature_selection:
     - distance
   dimension_reduction:
-    - sparse_pls
+    - none
   models:
-    - linear
-    - bimixture 
+    - random_forest
 
 
 #
@@ -72,6 +71,13 @@ dimension_reduction:
       tolerance: 1.0
       seed: 23827
       # DropFactorThreshold: 0.01
+
+#
+# Random forest settings
+# 
+random_forest:
+  num_trees: 2500
+  
 
 #
 # Feature filtering

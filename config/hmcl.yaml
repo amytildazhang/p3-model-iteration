@@ -42,12 +42,12 @@ model_combinations:
     - gene_sets
     - raw
   feature_selection:
-    - none
+    - distance 
   dimension_reduction:
-    - sparse_pls
+    - mofa
   models:
-    - linear
-    - bimixture
+    - horseshoe
+    - random_forest
 
 
 #

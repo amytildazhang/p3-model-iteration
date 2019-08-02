@@ -61,21 +61,26 @@ MODEL <- snakemake@wildcards$model
 if (MODEL == 'random_forest') {
   # use caret to tune model hyperparameters
 	train_control <- trainControl(method = "cv", number = 10, savePred = TRUE,
-															  classProb = FALSE)
+				  classProb = FALSE)
 
-  caret_mod <- train(response ~ ., data = dat, method = "ranger", metric = 'Rsquared',
-                     trControl = train_control, importance = 'permutation',
-										 num.trees = snakemake@config$model$num_trees,
-                     num.threads = snakemake@config$num_threads$train_model)
+  caret_mod <- train(response ~ ., data = dat[train_idx, ], method = "ranger", metric = 'Rsquared',
+                	 trControl = train_control, importance = 'permutation',
+			 num.trees = as.numeric(snakemake@config$random_forest$num_trees),
+                         num.threads = snakemake@config$num_threads$train_model)
 
   # next, generate a tidy version of the tuned model using parsnip
-	mod <- rand_forest(mode = "regression", mtry = caret_mod$bestTune$mtry, 
-										 trees = snakemake@config$model$num_trees, 
-									   min_n = caret_mod$bestTune$min.node.size) %>%
-		set_engine("ranger", importance = 'permutation', seed = 1,
-							 splitrule = caret$bestTune$splitrule,
-               num.threads = snakemake@config$num_threads$train_model) %>%
-		fit(response ~ ., data = dat)
+	mod <- rand_forest(mode = "regression", mtry = min(caret_mod$bestTune$mtry, ncol(dat) - 4), 
+          		 trees = snakemake@config$random_forest$num_trees, 
+  	    		 min_n = caret_mod$bestTune$min.node.size) %>%
+			 set_engine("ranger", importance = 'permutation', seed = 1,
+			 splitrule = caret_mod$bestTune$splitrule,
+               		 num.threads = snakemake@config$num_threads$train_model) %>%
+		fit(response ~ ., data = dat[train_idx, ])
+
+    if (!FIT_FULL) {
+        mod <- cbind(dat[!train_idx, SAMPLE_IND], predict(mod, dat[!train_idx, ]))
+    }
+
 } else {
   
   if (!FIT_FULL) {

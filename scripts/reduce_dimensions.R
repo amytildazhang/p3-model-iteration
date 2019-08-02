@@ -39,7 +39,7 @@ if (length(infna_cols) > 0) {
   feat[infna_idx] <- rnorm(length(na_col_ord), mean = mean_vals[na_col_ord], sd = sd_vals[na_col_ord])
 }
 
-METHOD <- snakemake@wildcards$dim_red
+METHOD <- snakemake@wildcards$rdim_red
 
 #
 # Sparse PLS
@@ -73,7 +73,7 @@ if (METHOD == 'sparse_pls') {
   # either filter out features with mostly zero values / apply a slightly more
   # aggressive variance cutoff (e.g. 0.5 or 1 instead of 0)?
   cv_chs <- cv.spls(feat[train_idx, ], y[train_idx],
-                    eta = c(seq(0.3, 0.7, by = 0.1), 0.75),  K = c(1:10), fold = 10)
+                    eta = c(2:9)/10,  K = c(1:ceiling(nrow(feat)/2), fold = 10))
 
   # Fit sparse PLS using selected number of components and eta
   spfit <- spls(feat[train_idx, ], y[train_idx], eta = cv_chs$eta.opt, K = cv_chs$K.opt)
